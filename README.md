@@ -74,3 +74,14 @@ Open `http://localhost:3000`.
 
 - Saved game state is stored in browser `localStorage` under `sudoky-active-game`.
 - The leaderboard uses Supabase table `public.scores`.
+
+
+## Features/améliorations to implement
+- larger numbers in the grid
+- maybe: background each case in the sudoku alternated, instead of gray for given numbers 
+- create new background themes
+- change button name for background
+- availability of game in french, german, english
+- rules of game (on main page)
+- tips/strategies
+- printable versions in pdf with choice of diffulty levels (mix, or only 1 level)
