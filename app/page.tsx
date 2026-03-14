@@ -88,7 +88,7 @@ export default function HomePage() {
 
       {savedGame ? (
         <section className="card" style={{ marginTop: "1rem" }}>
-          <h2>Saved game</h2>
+          <h2>{savedGame.gameName?.trim() || "Saved Game"}</h2>
           <p className="text-muted">
             Difficulty: {labels[savedGame.difficulty]} | Elapsed: {savedGame.elapsedSeconds}s | Paused: {savedGame.paused ? "yes" : "no"}
           </p>
