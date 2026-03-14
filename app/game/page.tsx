@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import NavBar from "@/components/NavBar";
 import { assertSupabaseEnv, supabase } from "@/lib/supabase";
@@ -23,6 +23,7 @@ export default function GamePage() {
   const [selected, setSelected] = useState<{ row: number; col: number } | null>(null);
   const [status, setStatus] = useState<string>("");
   const [savedScore, setSavedScore] = useState(false);
+  const gameNameRef = useRef<string>("");
 
   const difficulty: Difficulty = useMemo(
     () => (difficultyValues.includes(requestedDifficulty) ? requestedDifficulty : "easy"),
@@ -54,6 +55,7 @@ export default function GamePage() {
             try {
               const saved = JSON.parse(raw) as SudokuGameState;
               if (saved.difficulty === difficulty) {
+                gameNameRef.current = saved.gameName ?? "";
                 setGame(saved);
                 return;
               }
@@ -63,6 +65,7 @@ export default function GamePage() {
           }
         }
 
+        gameNameRef.current = "";
         const { puzzle, solution } = createSudoku(difficulty);
         setGame({
           puzzle,
@@ -113,7 +116,7 @@ export default function GamePage() {
 
   const persistAndExit = () => {
     if (!game) return;
-    const pausedGame = { ...game, paused: true };
+    const pausedGame = { ...game, gameName: gameNameRef.current.trim() || undefined, paused: true };
     localStorage.setItem(GAME_STORAGE_KEY, JSON.stringify(pausedGame));
     router.push("/");
   };
@@ -181,9 +184,10 @@ export default function GamePage() {
   }
 
   const togglePause = () => {
+    const name = gameNameRef.current.trim() || undefined;
     setGame((prev) => {
       if (!prev) return prev;
-      const next = { ...prev, paused: !prev.paused };
+      const next = { ...prev, gameName: name, paused: !prev.paused };
       localStorage.setItem(GAME_STORAGE_KEY, JSON.stringify(next));
       return next;
     });
@@ -191,7 +195,7 @@ export default function GamePage() {
 
   const saveProgress = () => {
     if (!game) return;
-    localStorage.setItem(GAME_STORAGE_KEY, JSON.stringify(game));
+    localStorage.setItem(GAME_STORAGE_KEY, JSON.stringify({ ...game, gameName: gameNameRef.current.trim() || undefined }));
     setStatus("Progress saved on this browser.");
   };
 
@@ -199,7 +203,20 @@ export default function GamePage() {
     <main className="container">
       <NavBar displayName={displayName} />
       <section className="card">
-        <h1>Game ({difficulty})</h1>
+        <h1>
+          <input
+            value={game.gameName ?? ""}
+            onChange={(e) => {
+              const name = e.target.value;
+              gameNameRef.current = name;
+              setGame((prev) => prev ? { ...prev, gameName: name } : prev);
+            }}
+            placeholder="Saved Game"
+            maxLength={40}
+            style={{ font: "inherit", fontSize: "1.25em", fontWeight: 700, border: "none", borderBottom: "2px solid #cbd5e1", background: "transparent", outline: "none", width: "100%", padding: "0 0 2px 0" }}
+            aria-label="Game name"
+          />
+        </h1>
         <p>
           Timer: <strong>{formatSeconds(game.elapsedSeconds)}</strong> | {game.paused ? "Paused" : "Running"}
         </p>

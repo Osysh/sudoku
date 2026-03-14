@@ -8,6 +8,7 @@ export type SudokuGameState = {
   elapsedSeconds: number;
   paused: boolean;
   difficulty: Difficulty;
+  gameName?: string;
 };
 
 export type ScoreRow = {
