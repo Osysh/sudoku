@@ -1,5 +1,5 @@
 :root {
-  --bg: #f3f6f8;
+  --bg: #ffe6f2;
   --card: #ffffff;
   --text: #111827;
   --muted: #4b5563;
@@ -15,9 +15,21 @@
 
 body {
   margin: 0;
-  background: radial-gradient(circle at top, #dbeafe 0%, var(--bg) 40%);
+  min-height: 100vh;
   color: var(--text);
   font-family: "Avenir Next", "Segoe UI", sans-serif;
+}
+
+body[data-bg-mode="pink"],
+body:not([data-bg-mode]) {
+  background: linear-gradient(180deg, #ffd7ea 0%, var(--bg) 45%, #ffeaf4 100%);
+}
+
+body[data-bg-mode="image"] {
+  background-image: linear-gradient(rgba(255, 235, 245, 0.58), rgba(255, 241, 247, 0.72)), url("/unnamed.jpg");
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
 }
 
 a {
@@ -28,7 +40,7 @@ a {
 .container {
   max-width: 960px;
   margin: 0 auto;
-  padding: 1.25rem;
+  padding: 1rem 1.25rem 1.25rem;
 }
 
 .card {
@@ -43,7 +55,8 @@ a {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem;
+  padding: 0.5rem 0;
+  margin-bottom: 0.5rem;
   gap: 1rem;
 }
 
@@ -72,6 +85,15 @@ button.primary {
 button:disabled {
   cursor: not-allowed;
   opacity: 0.6;
+}
+
+.bg-toggle {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 50;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(6px);
 }
 
 .grid {
@@ -128,5 +150,11 @@ td {
   .nav-right {
     width: 100%;
     justify-content: space-between;
+  }
+
+  .bg-toggle {
+    right: 10px;
+    bottom: 10px;
+    padding: 0.5rem 0.75rem;
   }
 }
