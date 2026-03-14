@@ -77,11 +77,24 @@ Open `http://localhost:3000`.
 
 
 ## Features/améliorations to implement
+
+### ASAP
+- timer in minutes and not in seconds
+
+### Sudoku grid layout
 - larger numbers in the grid
 - maybe: background each case in the sudoku alternated, instead of gray for given numbers 
+- when you click on a number in the grid -> all the numbers in the sudoku are highlighted
+
+### Style
 - create new background themes
 - change button name for background
-- availability of game in french, german, english
+
+### On main page
 - rules of game (on main page)
 - tips/strategies
+
+### Other
+- contact page for issues
+- availability of game in french, german, english
 - printable versions in pdf with choice of diffulty levels (mix, or only 1 level)
