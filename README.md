@@ -104,6 +104,7 @@ Notes:
 ## Features/améliorations to implement
 
 ### ASAP
+- solve points count: define scale mixing level difficulty + time 
 - when a game is finished, submitted, and correct -> redirected to leaderboard
 
 ### Style
