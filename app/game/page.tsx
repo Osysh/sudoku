@@ -21,6 +21,7 @@ export default function GamePage() {
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [game, setGame] = useState<SudokuGameState | null>(null);
   const [selected, setSelected] = useState<{ row: number; col: number } | null>(null);
+  const [activeDigit, setActiveDigit] = useState<number | null>(null);
   const [status, setStatus] = useState<string>("");
   const [savedScore, setSavedScore] = useState(false);
   const gameNameRef = useRef<string>("");
@@ -114,6 +115,27 @@ export default function GamePage() {
     return () => clearInterval(id);
   }, [isPaused, savedScore]);
 
+  const digitCounts = useMemo(() => {
+    if (!game) {
+      return Array(10).fill(0) as number[];
+    }
+    const counts = Array(10).fill(0) as number[];
+    for (const row of game.board) {
+      for (const value of row) {
+        if (value >= 1 && value <= 9) {
+          counts[value] += 1;
+        }
+      }
+    }
+    return counts;
+  }, [game]);
+
+  useEffect(() => {
+    if (activeDigit !== null && digitCounts[activeDigit] >= 9) {
+      setActiveDigit(null);
+    }
+  }, [activeDigit, digitCounts]);
+
   const persistAndExit = () => {
     if (!game) return;
     const pausedGame = { ...game, gameName: gameNameRef.current.trim() || undefined, paused: true };
@@ -197,6 +219,8 @@ export default function GamePage() {
     localStorage.setItem(GAME_STORAGE_KEY, JSON.stringify({ ...game, gameName: gameNameRef.current.trim() || undefined }));
     setStatus("Progress saved on this browser.");
   };
+  const selectedValue = selected ? game.board[selected.row]?.[selected.col] ?? 0 : 0;
+  const highlightedDigit = activeDigit ?? (selectedValue > 0 ? selectedValue : null);
 
   return (
     <main className="container">
@@ -232,33 +256,69 @@ export default function GamePage() {
           {game.board.map((rowVals, row) =>
             rowVals.map((value, col) => {
               const fixed = game.puzzle[row][col] !== 0;
-              const isSelected = selected?.row === row && selected?.col === col;
+              const isSameValue = highlightedDigit !== null && value === highlightedDigit;
               const top = row % 3 === 0 ? 2 : 1;
               const left = col % 3 === 0 ? 2 : 1;
               const bottom = row === 8 ? 2 : 1;
               const right = col === 8 ? 2 : 1;
+              const cellBackground = isSameValue ? "#fde68a" : fixed ? "#e2e8f0" : "transparent";
 
               return (
                 <div
                   key={`${row}-${col}`}
                   className={`cell ${fixed ? "fixed" : ""}`}
-                  style={{ borderTopWidth: top, borderLeftWidth: left, borderBottomWidth: bottom, borderRightWidth: right }}
+                  style={{
+                    borderTopWidth: top,
+                    borderLeftWidth: left,
+                    borderBottomWidth: bottom,
+                    borderRightWidth: right,
+                    background: cellBackground
+                  }}
                 >
                   <input
                     value={value === 0 ? "" : value}
                     readOnly={fixed || game.paused || savedScore}
-                    onFocus={() => setSelected({ row, col })}
+                    onFocus={() => {
+                      setSelected({ row, col });
+                      if (value > 0) {
+                        setActiveDigit(value);
+                      }
+                    }}
                     onChange={(e) => updateCell(row, col, e.target.value)}
                     inputMode="numeric"
                     pattern="[1-9]"
                     maxLength={1}
-                    style={{ background: isSelected ? "#eff6ff" : "transparent", fontWeight: fixed ? 700 : 400 }}
+                    style={{ background: "transparent", fontWeight: fixed ? 700 : 400 }}
                     aria-label={`row ${row + 1} col ${col + 1}`}
                   />
                 </div>
               );
             })
           )}
+        </div>
+
+        <div style={{ width: "min(96vw, 540px)", margin: "0.9rem auto 0", display: "flex", justifyContent: "center", gap: "0.45rem", flexWrap: "wrap" }}>
+          {Array.from({ length: 9 }, (_, i) => i + 1).map((digit) => {
+            const completed = digitCounts[digit] >= 9;
+            const selectedDigit = highlightedDigit === digit;
+            return (
+              <button
+                key={digit}
+                type="button"
+                disabled={completed}
+                onClick={() => setActiveDigit((prev) => (prev === digit ? null : digit))}
+                style={{
+                  minWidth: 42,
+                  fontWeight: 700,
+                  background: selectedDigit ? "#fde68a" : undefined,
+                  borderColor: selectedDigit ? "#f59e0b" : undefined
+                }}
+                aria-label={`Highlight digit ${digit}`}
+              >
+                {digit}
+              </button>
+            );
+          })}
         </div>
 
         {status ? <p className={status.includes("Solved") ? "" : "text-danger"}>{status}</p> : null}
