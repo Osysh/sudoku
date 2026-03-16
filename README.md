@@ -106,10 +106,17 @@ Notes:
 ### ASAP
 - solve points count: define scale mixing level difficulty + time 
 - when a game is finished, submitted, and correct -> redirected to leaderboard
+- leaderboard as ranking of sum of all points of player
+- somewhere keep track of best time in each level
+- personnaliser l'email d'insciption
 
 ### Style
 - create new background themes
-- change button name for background
+    - amytis léopard
+    - maxime bateau, musique
+    - soso rose
+- change button for background
+- hide game when pause 
 
 ### Gamification
 - rooms for players with the same game -> timing competition
@@ -121,8 +128,8 @@ Notes:
 - availability of game in french, german, english, japanese
 - printable versions in pdf with choice of diffulty levels (mix, or only 1 level)
 - mobile app
-- son 
+- son victoire ou playlist intégrée
 - trophées pour 
 - version offline qui se remet à jour sur l'app dès que reconnecté au wifi
-- option d'annoter dans coin 
+- option d'annoter dans coin case (?)
 - snapshot of intermediate version, possibility to come back to a previous version
