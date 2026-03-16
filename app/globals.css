@@ -18,6 +18,7 @@ body {
   min-height: 100vh;
   color: var(--text);
   font-family: "Avenir Next", "Segoe UI", sans-serif;
+  overflow-x: hidden;
 }
 
 body[data-bg-mode="pink"],
@@ -87,43 +88,117 @@ button:disabled {
   opacity: 0.6;
 }
 
-.bg-toggle {
-  position: fixed;
-  right: 16px;
-  bottom: 16px;
-  z-index: 50;
+.settings-menu {
+  position: relative;
+  z-index: 20;
+  max-width: 100%;
+}
+
+.settings-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
   background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(6px);
+}
+
+.settings-trigger svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+.settings-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.45rem);
+  margin-top: 0.5rem;
+  padding: 0.55rem;
+  width: min(240px, calc(100vw - 24px));
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
+  display: grid;
+  gap: 0.35rem;
+}
+
+.settings-title {
+  margin: 0 0 0.1rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.settings-panel button {
+  width: 100%;
+  text-align: left;
+  padding: 0.45rem 0.6rem;
+}
+
+.settings-panel button.active {
+  background: var(--accent-soft);
+  border-color: #86efac;
 }
 
 .grid {
   display: grid;
   grid-template-columns: repeat(9, minmax(0, 1fr));
-  width: min(96vw, 540px);
+  width: 100%;
+  max-width: 540px;
   margin: 1rem auto;
   border: 2px solid #111827;
 }
 
 .cell {
+  position: relative;
   aspect-ratio: 1;
   border: 1px solid #94a3b8;
+  overflow: hidden;
 }
 
-.cell input {
-  width: 100%;
-  height: 100%;
+.cell-button {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: none;
+  border-radius: 0;
+  padding: 0;
+  margin: 0;
+  color: inherit;
+  line-height: 1;
   text-align: center;
   font-size: 1.1rem;
   background: transparent;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.cell-button.selected {
+  outline: 2px solid #2563eb;
+  outline-offset: -2px;
+}
+
+.digit-pad {
+  width: 100%;
+  max-width: 540px;
+  margin: 0.9rem auto 0;
+  display: flex;
+  justify-content: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
 }
 
 .cell.fixed {
   background: #e2e8f0;
 }
 
-.cell input:focus {
+.cell-button:focus-visible {
   outline: 2px solid #93c5fd;
+  outline-offset: -2px;
 }
 
 th,
@@ -142,19 +217,65 @@ td {
 }
 
 @media (max-width: 640px) {
+  .container {
+    padding: 0.75rem;
+  }
+
+  .card {
+    padding: 0.75rem;
+  }
+
   .nav {
     flex-direction: column;
     align-items: flex-start;
   }
 
-  .nav-right {
-    width: 100%;
-    justify-content: space-between;
+  .nav-left {
+    flex-wrap: wrap;
+    row-gap: 0.4rem;
   }
 
-  .bg-toggle {
-    right: 10px;
-    bottom: 10px;
-    padding: 0.5rem 0.75rem;
+  .nav-right {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    row-gap: 0.5rem;
+  }
+
+  .grid {
+    margin: 0.8rem auto;
+  }
+
+  .cell-button {
+    font-size: 1rem;
+  }
+
+  .digit-pad {
+    gap: 0.35rem;
+  }
+
+  .digit-pad button {
+    min-width: 38px;
+    padding: 0.45rem 0.6rem;
+  }
+
+  .settings-menu {
+    margin-left: auto;
+  }
+
+  .settings-trigger {
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    justify-content: center;
+    border-radius: 12px;
+  }
+
+  .settings-trigger span {
+    display: none;
+  }
+
+  .settings-panel {
+    right: 0;
   }
 }

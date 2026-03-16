@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import BackgroundToggle from "@/components/BackgroundToggle";
 
 type Props = {
   displayName: string;
@@ -24,6 +25,7 @@ export default function NavBar({ displayName }: Props) {
       </div>
       <div className="nav-right">
         <span>{displayName}</span>
+        <BackgroundToggle />
         <button onClick={handleLogout}>Log out</button>
       </div>
     </header>

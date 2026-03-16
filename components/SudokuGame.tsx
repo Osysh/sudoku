@@ -151,23 +151,55 @@ export default function SudokuGame({ basePath = "/" }: Props) {
     localStorage.setItem(GAME_STORAGE_KEY, JSON.stringify(game));
   }, [game, savedScore]);
 
-  const updateCell = (row: number, col: number, value: string) => {
+  const updateCellValue = useCallback((row: number, col: number, nextValue: number) => {
     if (!game || game.paused || game.puzzle[row][col] !== 0 || savedScore || isSubmittingScore || victoryLocked) {
       return;
     }
 
-    const parsed = value === "" ? 0 : Number(value);
-    if (Number.isNaN(parsed) || parsed < 0 || parsed > 9) {
+    if (Number.isNaN(nextValue) || nextValue < 0 || nextValue > 9) {
       return;
     }
 
     setGame((prev) => {
       if (!prev) return prev;
       const board = prev.board.map((r) => [...r]);
-      board[row][col] = parsed;
+      board[row][col] = nextValue;
       return { ...prev, board };
     });
-  };
+  }, [game, isSubmittingScore, savedScore, victoryLocked]);
+
+  useEffect(() => {
+    if (!selected || !game || game.paused || savedScore || isSubmittingScore || victoryLocked) {
+      return;
+    }
+
+    const { row, col } = selected;
+    if (game.puzzle[row][col] !== 0) {
+      return;
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.metaKey || event.ctrlKey || event.altKey) {
+        return;
+      }
+
+      if (/^[1-9]$/.test(event.key)) {
+        event.preventDefault();
+        const digit = Number(event.key);
+        setActiveDigit(digit);
+        updateCellValue(row, col, digit);
+        return;
+      }
+
+      if (event.key === "Backspace" || event.key === "Delete" || event.key === "0") {
+        event.preventDefault();
+        updateCellValue(row, col, 0);
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [game, isSubmittingScore, savedScore, selected, updateCellValue, victoryLocked]);
 
   const submitScoreIfSolved = useCallback(async (origin: "auto" | "manual" = "manual") => {
     if (!game || savedScore || isSubmittingScore) {
@@ -246,6 +278,7 @@ export default function SudokuGame({ basePath = "/" }: Props) {
   };
 
   const selectedValue = selected ? game.board[selected.row]?.[selected.col] ?? 0 : 0;
+  const selectedIsEditable = selected ? game.puzzle[selected.row][selected.col] === 0 : false;
   const highlightedDigit = activeDigit ?? (selectedValue > 0 ? selectedValue : null);
 
   return (
@@ -253,7 +286,6 @@ export default function SudokuGame({ basePath = "/" }: Props) {
       <NavBar displayName={displayName} />
       <section className="card">
         <h1>Sudoku</h1>
-        <p className="text-muted">Choose difficulty and play directly here.</p>
         <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap", marginBottom: "0.8rem" }}>
           {difficultyValues.map((d) => (
             <button
@@ -281,10 +313,6 @@ export default function SudokuGame({ basePath = "/" }: Props) {
           </button>
         </div>
 
-        <p className="text-muted" style={{ marginTop: "0.6rem" }}>
-          Score is auto-verified and auto-submitted when the grid is fully solved.
-        </p>
-
         <div className="grid" aria-label="sudoku grid" style={savedScore || isSubmittingScore || victoryLocked ? { pointerEvents: "none", opacity: 0.65 } : undefined}>
           {game.board.map((rowVals, row) =>
             rowVals.map((value, col) => {
@@ -295,6 +323,8 @@ export default function SudokuGame({ basePath = "/" }: Props) {
               const bottom = row === 8 ? 2 : 1;
               const right = col === 8 ? 2 : 1;
               const cellBackground = isSameValue ? "#fde68a" : fixed ? "#e2e8f0" : "transparent";
+
+              const isSelected = selected?.row === row && selected?.col === col;
 
               return (
                 <div
@@ -308,29 +338,27 @@ export default function SudokuGame({ basePath = "/" }: Props) {
                     background: cellBackground
                   }}
                 >
-                  <input
-                    value={value === 0 ? "" : value}
-                    readOnly={fixed || game.paused || savedScore || isSubmittingScore || victoryLocked}
-                    onFocus={() => {
+                  <button
+                    type="button"
+                    className={`cell-button ${isSelected ? "selected" : ""}`}
+                    onClick={() => {
                       setSelected({ row, col });
                       if (value > 0) {
                         setActiveDigit(value);
                       }
                     }}
-                    onChange={(e) => updateCell(row, col, e.target.value)}
-                    inputMode="numeric"
-                    pattern="[1-9]"
-                    maxLength={1}
-                    style={{ background: "transparent", fontWeight: fixed ? 700 : 400 }}
+                    style={{ fontWeight: fixed ? 700 : 400 }}
                     aria-label={`row ${row + 1} col ${col + 1}`}
-                  />
+                  >
+                    {value === 0 ? "" : value}
+                  </button>
                 </div>
               );
             })
           )}
         </div>
 
-        <div style={{ width: "min(96vw, 540px)", margin: "0.9rem auto 0", display: "flex", justifyContent: "center", gap: "0.45rem", flexWrap: "wrap" }}>
+        <div className="digit-pad">
           {Array.from({ length: 9 }, (_, i) => i + 1).map((digit) => {
             const completed = digitCounts[digit] >= 9;
             const selectedDigit = highlightedDigit === digit;
@@ -339,7 +367,13 @@ export default function SudokuGame({ basePath = "/" }: Props) {
                 key={digit}
                 type="button"
                 disabled={completed || savedScore || isSubmittingScore || victoryLocked}
-                onClick={() => setActiveDigit((prev) => (prev === digit ? null : digit))}
+                onClick={() => {
+                  setActiveDigit(digit);
+                  if (!selected) {
+                    return;
+                  }
+                  updateCellValue(selected.row, selected.col, digit);
+                }}
                 style={{
                   minWidth: 42,
                   fontWeight: 700,
@@ -352,6 +386,19 @@ export default function SudokuGame({ basePath = "/" }: Props) {
               </button>
             );
           })}
+          <button
+            type="button"
+            disabled={!selectedIsEditable || savedScore || isSubmittingScore || victoryLocked}
+            onClick={() => {
+              if (!selected) {
+                return;
+              }
+              updateCellValue(selected.row, selected.col, 0);
+            }}
+            aria-label="Clear selected cell"
+          >
+            Clear
+          </button>
         </div>
 
         {status ? <p className={status.includes("Solved") ? "" : "text-danger"}>{status}</p> : null}
