@@ -142,14 +142,16 @@ export function validateProgress(board: number[][], puzzle: number[][]): boolean
 }
 
 export function calculatePoints(difficulty: Difficulty, completionSeconds: number): number {
-  const base = {
-    easy: 600,
-    medium: 1000,
-    hard: 1500
+  const config = {
+    easy: { base: 400, bonusMax: 300, limitSeconds: 3 * 60 * 60 },
+    medium: { base: 700, bonusMax: 500, limitSeconds: 3 * 60 * 60 + 30 * 60 },
+    hard: { base: 1100, bonusMax: 800, limitSeconds: 4 * 60 * 60 }
   }[difficulty];
 
-  const timePenalty = completionSeconds * 2;
-  return Math.max(100, base - timePenalty);
+  const elapsed = Math.max(0, completionSeconds);
+  const ratio = Math.max(0, Math.min(1, 1 - elapsed / config.limitSeconds));
+  const bonus = Math.round(config.bonusMax * ratio);
+  return config.base + bonus;
 }
 
 export function formatSeconds(total: number): string {

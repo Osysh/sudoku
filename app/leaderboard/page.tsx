@@ -6,12 +6,17 @@ import NavBar from "@/components/NavBar";
 import { assertSupabaseEnv, supabase } from "@/lib/supabase";
 import { ScoreRow } from "@/lib/types";
 import { getOrCreateUsername } from "@/lib/profile";
-import { formatSeconds } from "@/lib/sudoku";
+
+type LeaderboardPlayerRow = {
+  username: string;
+  totalPoints: number;
+  gamesPlayed: number;
+};
 
 export default function LeaderboardPage() {
   const router = useRouter();
   const [displayName, setDisplayName] = useState<string | null>(null);
-  const [scores, setScores] = useState<ScoreRow[]>([]);
+  const [players, setPlayers] = useState<LeaderboardPlayerRow[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -35,17 +40,39 @@ export default function LeaderboardPage() {
 
         const { data, error: fetchError } = await supabase
           .from("scores")
-          .select("id,username,difficulty,completion_seconds,points,created_at")
-          .order("points", { ascending: false })
-          .order("completion_seconds", { ascending: true })
-          .limit(50);
+          .select("id,username,difficulty,completion_seconds,points,created_at");
 
         if (fetchError) {
           setError(fetchError.message);
           return;
         }
 
-        setScores((data as ScoreRow[]) ?? []);
+        const rows = (data as ScoreRow[]) ?? [];
+        const aggregate = new Map<string, LeaderboardPlayerRow>();
+
+        for (const row of rows) {
+          const existing = aggregate.get(row.username);
+          if (existing) {
+            existing.totalPoints += row.points;
+            existing.gamesPlayed += 1;
+            continue;
+          }
+
+          aggregate.set(row.username, {
+            username: row.username,
+            totalPoints: row.points,
+            gamesPlayed: 1
+          });
+        }
+
+        const leaderboardRows = Array.from(aggregate.values()).sort((a, b) => {
+          if (b.totalPoints !== a.totalPoints) {
+            return b.totalPoints - a.totalPoints;
+          }
+          return a.username.localeCompare(b.username);
+        });
+
+        setPlayers(leaderboardRows);
       } catch (err) {
         setError((err as Error).message);
       }
@@ -67,33 +94,29 @@ export default function LeaderboardPage() {
       <NavBar displayName={displayName} />
       <section className="card">
         <h1>Leaderboard</h1>
-        <p className="text-muted">Ranking by points, then faster completion time.</p>
+        <p className="text-muted">One row per player, ranked by cumulative points across all games.</p>
         {error ? <p className="text-danger">{error}</p> : null}
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr>
               <th>#</th>
               <th>Player</th>
-              <th>Difficulty</th>
-              <th>Time</th>
-              <th>Points</th>
-              <th>Date</th>
+              <th>Games</th>
+              <th>Total Points</th>
             </tr>
           </thead>
           <tbody>
-            {scores.map((score, index) => (
-              <tr key={score.id}>
+            {players.map((player, index) => (
+              <tr key={player.username}>
                 <td>{index + 1}</td>
-                <td>{score.username}</td>
-                <td>{score.difficulty}</td>
-                <td>{formatSeconds(score.completion_seconds)}</td>
-                <td>{score.points}</td>
-                <td>{new Date(score.created_at).toLocaleString()}</td>
+                <td>{player.username}</td>
+                <td>{player.gamesPlayed}</td>
+                <td>{player.totalPoints}</td>
               </tr>
             ))}
-            {!scores.length ? (
+            {!players.length ? (
               <tr>
-                <td colSpan={6} className="text-muted">
+                <td colSpan={4} className="text-muted">
                   No completed games yet.
                 </td>
               </tr>

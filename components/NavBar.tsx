@@ -7,9 +7,11 @@ import BackgroundToggle from "@/components/BackgroundToggle";
 
 type Props = {
   displayName: string;
+  isAuthenticated?: boolean;
+  onConnect?: () => void;
 };
 
-export default function NavBar({ displayName }: Props) {
+export default function NavBar({ displayName, isAuthenticated = true, onConnect }: Props) {
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -26,7 +28,11 @@ export default function NavBar({ displayName }: Props) {
       <div className="nav-right">
         <span>{displayName}</span>
         <BackgroundToggle />
-        <button onClick={handleLogout}>Log out</button>
+        {isAuthenticated ? (
+          <button onClick={handleLogout}>Log out</button>
+        ) : (
+          <button onClick={() => (onConnect ? onConnect() : router.push("/login"))}>Connect</button>
+        )}
       </div>
     </header>
   );

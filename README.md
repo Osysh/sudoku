@@ -105,8 +105,6 @@ Notes:
 
 ### ASAP
 - solve points count: define scale mixing level difficulty + time 
-- when a game is finished, submitted, and correct -> redirected to leaderboard
-- leaderboard as ranking of sum of all points of player
 - somewhere keep track of best time in each level
 - personnaliser l'email d'insciption
 
@@ -123,6 +121,7 @@ Notes:
 - mode "contre la montre" with given time -> +1000 points if successful 
 
 ### Other
+- in Data base: link user id etc, add display name in authent DB
 - contact page for issues
 - include checkbox with/without help 
 - availability of game in french, german, english, japanese
