@@ -2,24 +2,41 @@
 
 import { useEffect, useRef, useState } from "react";
 
-type BgMode = "pink" | "image";
+type ThemeMode = "pink" | "swiss_alp" | "paris" | "leopard" | "yquem";
 
-const STORAGE_KEY = "sudoky-bg-mode";
+const STORAGE_KEY = "sudoky-theme-mode";
+const LEGACY_STORAGE_KEY = "sudoky-bg-mode";
 
-function applyMode(mode: BgMode) {
-  document.body.setAttribute("data-bg-mode", mode);
+function normalizeTheme(value: string | null): ThemeMode {
+  if (value === "swiss_alp" || value === "image") {
+    return "swiss_alp";
+  }
+  if (value === "paris") {
+    return "paris";
+  }
+  if (value === "leopard") {
+    return "leopard";
+  }
+  if (value === "yquem") {
+    return "yquem";
+  }
+  return "pink";
+}
+
+function applyThemeToBody(theme: ThemeMode) {
+  document.body.setAttribute("data-theme", theme);
 }
 
 export default function BackgroundToggle() {
-  const [mode, setMode] = useState<BgMode>("pink");
+  const [theme, setTheme] = useState<ThemeMode>("pink");
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    const initialMode: BgMode = saved === "image" ? "image" : "pink";
-    setMode(initialMode);
-    applyMode(initialMode);
+    const saved = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(LEGACY_STORAGE_KEY);
+    const initialTheme = normalizeTheme(saved);
+    setTheme(initialTheme);
+    applyThemeToBody(initialTheme);
   }, []);
 
   useEffect(() => {
@@ -37,10 +54,10 @@ export default function BackgroundToggle() {
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
 
-  const setTheme = (nextMode: BgMode) => {
-    setMode(nextMode);
-    localStorage.setItem(STORAGE_KEY, nextMode);
-    applyMode(nextMode);
+  const applyTheme = (nextTheme: ThemeMode) => {
+    setTheme(nextTheme);
+    localStorage.setItem(STORAGE_KEY, nextTheme);
+    applyThemeToBody(nextTheme);
     setOpen(false);
   };
 
@@ -66,20 +83,47 @@ export default function BackgroundToggle() {
           <button
             type="button"
             role="menuitemradio"
-            aria-checked={mode === "pink"}
-            className={mode === "pink" ? "active" : ""}
-            onClick={() => setTheme("pink")}
+            aria-checked={theme === "pink"}
+            className={theme === "pink" ? "active" : ""}
+            onClick={() => applyTheme("pink")}
           >
-            Rose
+            Pink
           </button>
           <button
             type="button"
             role="menuitemradio"
-            aria-checked={mode === "image"}
-            className={mode === "image" ? "active" : ""}
-            onClick={() => setTheme("image")}
+            aria-checked={theme === "swiss_alp"}
+            className={theme === "swiss_alp" ? "active" : ""}
+            onClick={() => applyTheme("swiss_alp")}
           >
-            Image
+            Swiss Alp
+          </button>
+          <button
+            type="button"
+            role="menuitemradio"
+            aria-checked={theme === "paris"}
+            className={theme === "paris" ? "active" : ""}
+            onClick={() => applyTheme("paris")}
+          >
+            Paris
+          </button>
+          <button
+            type="button"
+            role="menuitemradio"
+            aria-checked={theme === "leopard"}
+            className={theme === "leopard" ? "active" : ""}
+            onClick={() => applyTheme("leopard")}
+          >
+            Leopard
+          </button>
+          <button
+            type="button"
+            role="menuitemradio"
+            aria-checked={theme === "yquem"}
+            className={theme === "yquem" ? "active" : ""}
+            onClick={() => applyTheme("yquem")}
+          >
+            Yquem
           </button>
         </div>
       ) : null}

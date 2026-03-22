@@ -104,7 +104,6 @@ Notes:
 ## Features/améliorations to implement
 
 ### ASAP
-- solve points count: define scale mixing level difficulty + time 
 - somewhere keep track of best time in each level
 - personnaliser l'email d'insciption
 

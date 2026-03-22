@@ -1,6 +1,7 @@
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
 import PwaRegister from "@/components/PwaRegister";
+import BackgroundToggle from "@/components/BackgroundToggle";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
 const withBasePath = (path: string) => `${basePath}${path}`;
@@ -21,8 +22,11 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body data-bg-mode="pink" suppressHydrationWarning>
+      <body data-theme="pink" suppressHydrationWarning>
         <PwaRegister />
+        <div className="theme-floating">
+          <BackgroundToggle />
+        </div>
         {children}
       </body>
     </html>

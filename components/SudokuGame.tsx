@@ -477,7 +477,7 @@ export default function SudokuGame({ basePath = "/" }: Props) {
   return (
     <main className="container">
       <NavBar displayName={displayName} isAuthenticated={isAuthenticated} onConnect={() => router.push("/login")} />
-      <section className="card">
+      <section className="game-panel">
         <h1>Sudoku</h1>
         <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap", marginBottom: "0.8rem" }}>
           {difficultyValues.map((d) => (
@@ -535,12 +535,12 @@ export default function SudokuGame({ basePath = "/" }: Props) {
                 const bottom = row === 8 ? thick : 0;
                 const right = col === 8 ? thick : 0;
                 const isInSelectedLine = selected !== null && (selected.row === row || selected.col === col);
-                let cellBackground = fixed ? "#e2e8f0" : "transparent";
+                let cellBackground = fixed ? "var(--cell-fixed)" : "transparent";
                 if (isInSelectedLine) {
-                  cellBackground = fixed ? "#d9e3f0" : "#fff9e8";
+                  cellBackground = fixed ? "var(--cell-line-fixed)" : "var(--cell-line)";
                 }
                 if (isSameValue) {
-                  cellBackground = "#fde68a";
+                  cellBackground = "var(--cell-same)";
                 }
 
                 const isSelected = selected?.row === row && selected?.col === col;
@@ -605,8 +605,8 @@ export default function SudokuGame({ basePath = "/" }: Props) {
                   style={{
                     minWidth: 42,
                     fontWeight: 700,
-                    background: selectedDigit ? "#fde68a" : undefined,
-                    borderColor: selectedDigit ? "#f59e0b" : undefined
+                    background: selectedDigit ? "var(--cell-same)" : undefined,
+                    borderColor: selectedDigit ? "var(--digit-selected-border)" : undefined
                   }}
                   aria-label={`Highlight digit ${digit}`}
                 >

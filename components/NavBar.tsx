@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import BackgroundToggle from "@/components/BackgroundToggle";
 
 type Props = {
   displayName: string;
@@ -27,7 +26,6 @@ export default function NavBar({ displayName, isAuthenticated = true, onConnect 
       </div>
       <div className="nav-right">
         <span>{displayName}</span>
-        <BackgroundToggle />
         {isAuthenticated ? (
           <button onClick={handleLogout}>Log out</button>
         ) : (
