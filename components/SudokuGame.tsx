@@ -522,95 +522,113 @@ export default function SudokuGame({ basePath = "/" }: Props) {
           ) : null}
         </div>
 
-        <div className="grid" aria-label="sudoku grid" style={savedScore || isSubmittingScore || victoryLocked ? { pointerEvents: "none", opacity: 0.65 } : undefined}>
-          {game.board.map((rowVals, row) =>
-            rowVals.map((value, col) => {
-              const fixed = game.puzzle[row][col] !== 0;
-              const isSameValue = highlightedDigit !== null && value === highlightedDigit;
-              const thin = 1;
-              const thick = 3;
-              const top = row % 3 === 0 ? thick : thin;
-              const left = col % 3 === 0 ? thick : thin;
-              const bottom = row === 8 ? thick : 0;
-              const right = col === 8 ? thick : 0;
-              const cellBackground = isSameValue ? "#fde68a" : fixed ? "#e2e8f0" : "transparent";
+        <div className="grid-wrap">
+          <div className={`grid ${game.paused ? "paused" : ""}`} aria-label="sudoku grid" style={savedScore || isSubmittingScore || victoryLocked ? { pointerEvents: "none", opacity: 0.65 } : undefined}>
+            {game.board.map((rowVals, row) =>
+              rowVals.map((value, col) => {
+                const fixed = game.puzzle[row][col] !== 0;
+                const isSameValue = highlightedDigit !== null && value === highlightedDigit;
+                const thin = 1;
+                const thick = 3;
+                const top = row % 3 === 0 ? thick : thin;
+                const left = col % 3 === 0 ? thick : thin;
+                const bottom = row === 8 ? thick : 0;
+                const right = col === 8 ? thick : 0;
+                const isInSelectedLine = selected !== null && (selected.row === row || selected.col === col);
+                let cellBackground = fixed ? "#e2e8f0" : "transparent";
+                if (isInSelectedLine) {
+                  cellBackground = fixed ? "#d9e3f0" : "#fff9e8";
+                }
+                if (isSameValue) {
+                  cellBackground = "#fde68a";
+                }
 
-              const isSelected = selected?.row === row && selected?.col === col;
+                const isSelected = selected?.row === row && selected?.col === col;
 
-              return (
-                <div
-                  key={`${row}-${col}`}
-                  className={`cell ${fixed ? "fixed" : ""}`}
-                  style={{
-                    borderTopWidth: top,
-                    borderLeftWidth: left,
-                    borderBottomWidth: bottom,
-                    borderRightWidth: right,
-                    background: cellBackground
-                  }}
-                >
-                  <button
-                    type="button"
-                    className={`cell-button ${isSelected ? "selected" : ""}`}
-                    onClick={() => {
-                      setSelected({ row, col });
-                      if (value > 0) {
-                        setActiveDigit(value);
-                      }
+                return (
+                  <div
+                    key={`${row}-${col}`}
+                    className={`cell ${fixed ? "fixed" : ""}`}
+                    style={{
+                      borderTopWidth: top,
+                      borderLeftWidth: left,
+                      borderBottomWidth: bottom,
+                      borderRightWidth: right,
+                      background: cellBackground
                     }}
-                    style={{ fontWeight: fixed ? 700 : 400 }}
-                    aria-label={`row ${row + 1} col ${col + 1}`}
                   >
-                    {value === 0 ? "" : value}
-                  </button>
-                </div>
-              );
-            })
-          )}
+                    <button
+                      type="button"
+                      className={`cell-button ${isSelected ? "selected" : ""}`}
+                      onClick={() => {
+                        setSelected({ row, col });
+                        if (value > 0) {
+                          setActiveDigit(value);
+                        }
+                      }}
+                      style={{ fontWeight: fixed ? 700 : 400 }}
+                      aria-label={`row ${row + 1} col ${col + 1}`}
+                    >
+                      {value === 0 ? "" : value}
+                    </button>
+                  </div>
+                );
+              })
+            )}
+          </div>
+          {game.paused ? (
+            <div className="grid-pause-overlay">
+              <button type="button" className="primary" onClick={togglePause}>
+                Resume
+              </button>
+            </div>
+          ) : null}
         </div>
 
-        <div className="digit-pad">
-          {Array.from({ length: 9 }, (_, i) => i + 1).map((digit) => {
-            const completed = digitCounts[digit] >= 9;
-            const selectedDigit = highlightedDigit === digit;
-            return (
-              <button
-                key={digit}
-                type="button"
-                disabled={completed || savedScore || isSubmittingScore || victoryLocked}
-                onClick={() => {
-                  setActiveDigit(digit);
-                  if (!selected) {
-                    return;
-                  }
-                  updateCellValue(selected.row, selected.col, digit);
-                }}
-                style={{
-                  minWidth: 42,
-                  fontWeight: 700,
-                  background: selectedDigit ? "#fde68a" : undefined,
-                  borderColor: selectedDigit ? "#f59e0b" : undefined
-                }}
-                aria-label={`Highlight digit ${digit}`}
-              >
-                {digit}
-              </button>
-            );
-          })}
-          <button
-            type="button"
-            disabled={!selectedIsEditable || savedScore || isSubmittingScore || victoryLocked}
-            onClick={() => {
-              if (!selected) {
-                return;
-              }
-              updateCellValue(selected.row, selected.col, 0);
-            }}
-            aria-label="Clear selected cell"
-          >
-            Clear
-          </button>
-        </div>
+        {!game.paused ? (
+          <div className="digit-pad">
+            {Array.from({ length: 9 }, (_, i) => i + 1).map((digit) => {
+              const completed = digitCounts[digit] >= 9;
+              const selectedDigit = highlightedDigit === digit;
+              return (
+                <button
+                  key={digit}
+                  type="button"
+                  disabled={completed || savedScore || isSubmittingScore || victoryLocked}
+                  onClick={() => {
+                    setActiveDigit(digit);
+                    if (!selected) {
+                      return;
+                    }
+                    updateCellValue(selected.row, selected.col, digit);
+                  }}
+                  style={{
+                    minWidth: 42,
+                    fontWeight: 700,
+                    background: selectedDigit ? "#fde68a" : undefined,
+                    borderColor: selectedDigit ? "#f59e0b" : undefined
+                  }}
+                  aria-label={`Highlight digit ${digit}`}
+                >
+                  {digit}
+                </button>
+              );
+            })}
+            <button
+              type="button"
+              disabled={!selectedIsEditable || savedScore || isSubmittingScore || victoryLocked}
+              onClick={() => {
+                if (!selected) {
+                  return;
+                }
+                updateCellValue(selected.row, selected.col, 0);
+              }}
+              aria-label="Clear selected cell"
+            >
+              Clear
+            </button>
+          </div>
+        ) : null}
 
         {status ? <p className={/(Solved|saved|pending)/i.test(status) ? "" : "text-danger"}>{status}</p> : null}
       </section>
