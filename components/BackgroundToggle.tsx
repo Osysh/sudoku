@@ -6,6 +6,7 @@ type ThemeMode = "pink" | "swiss_alp" | "paris" | "leopard" | "yquem";
 
 const STORAGE_KEY = "sudoky-theme-mode";
 const LEGACY_STORAGE_KEY = "sudoky-bg-mode";
+const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || "";
 
 function normalizeTheme(value: string | null): ThemeMode {
   if (value === "swiss_alp" || value === "image") {
@@ -24,7 +25,16 @@ function normalizeTheme(value: string | null): ThemeMode {
 }
 
 function applyThemeToBody(theme: ThemeMode) {
+  const imageByTheme: Record<ThemeMode, string | null> = {
+    pink: null,
+    swiss_alp: "/swiss.jpg",
+    paris: "/paris.jpeg",
+    leopard: "/leopard.jpeg",
+    yquem: "/yquem.jpeg"
+  };
+  const imagePath = imageByTheme[theme];
   document.body.setAttribute("data-theme", theme);
+  document.body.style.setProperty("--theme-bg-image", imagePath ? `url("${BASE_PATH}${imagePath}")` : "none");
 }
 
 export default function BackgroundToggle() {
