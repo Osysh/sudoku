@@ -318,10 +318,12 @@ export default function SudokuGame({ basePath = "/" }: Props) {
             rowVals.map((value, col) => {
               const fixed = game.puzzle[row][col] !== 0;
               const isSameValue = highlightedDigit !== null && value === highlightedDigit;
-              const top = row % 3 === 0 ? 2 : 1;
-              const left = col % 3 === 0 ? 2 : 1;
-              const bottom = row === 8 ? 2 : 1;
-              const right = col === 8 ? 2 : 1;
+              const thin = 1;
+              const thick = 3;
+              const top = row % 3 === 0 ? thick : thin;
+              const left = col % 3 === 0 ? thick : thin;
+              const bottom = row === 8 ? thick : 0;
+              const right = col === 8 ? thick : 0;
               const cellBackground = isSameValue ? "#fde68a" : fixed ? "#e2e8f0" : "transparent";
 
               const isSelected = selected?.row === row && selected?.col === col;
