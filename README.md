@@ -107,13 +107,6 @@ Notes:
 - somewhere keep track of best time in each level
 - personnaliser l'email d'insciption
 
-### Style
-- create new background themes
-    - amytis léopard
-    - maxime bateau, musique
-    - soso rose
-- change button for background
-- hide game when pause 
 
 ### Gamification
 - rooms for players with the same game -> timing competition
