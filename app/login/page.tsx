@@ -72,7 +72,7 @@ export default function LoginPage() {
   return (
     <main className="container" style={{ maxWidth: 420, paddingTop: "8vh" }}>
       <section className="card">
-        <h1>Sudoky</h1>
+        <h1>Sudoku</h1>
         <p className="text-muted">Email and password are required.</p>
         <form onSubmit={onSubmit} style={{ display: "grid", gap: "0.8rem" }}>
           {mode === "signup" ? (

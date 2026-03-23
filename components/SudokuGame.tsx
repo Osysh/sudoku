@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import NavBar from "@/components/NavBar";
 import { getOrCreateUsername } from "@/lib/profile";
 import { assertSupabaseEnv, supabase } from "@/lib/supabase";
 import { calculatePoints, createSudoku, formatSeconds, validateProgress } from "@/lib/sudoku";
@@ -22,10 +21,6 @@ type PendingScore = {
   completionSeconds: number;
   points: number;
   createdAt: number;
-};
-
-type Props = {
-  basePath?: string;
 };
 
 function isDifficulty(value: unknown): value is Difficulty {
@@ -56,13 +51,12 @@ function parsePendingScore(raw: string | null): PendingScore | null {
   }
 }
 
-export default function SudokuGame({ basePath = "/" }: Props) {
+export default function SudokuGame() {
   const router = useRouter();
   const params = useSearchParams();
   const requestedDifficulty = (params.get("difficulty") as Difficulty) || "easy";
   const forceNew = params.get("new") === "1";
 
-  const [displayName, setDisplayName] = useState("Guest");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [supabaseConfigured, setSupabaseConfigured] = useState(true);
   const [game, setGame] = useState<SudokuGameState | null>(null);
@@ -111,7 +105,6 @@ export default function SudokuGame({ basePath = "/" }: Props) {
       const user = data.session?.user;
       if (!user) {
         setIsAuthenticated(false);
-        setDisplayName("Guest");
         setStatus("Log in to save your pending points.");
         setIsSubmittingScore(false);
         return;
@@ -188,7 +181,6 @@ export default function SudokuGame({ basePath = "/" }: Props) {
     } catch {
       setSupabaseConfigured(false);
       setIsAuthenticated(false);
-      setDisplayName("Guest");
       return;
     }
 
@@ -208,25 +200,18 @@ export default function SudokuGame({ basePath = "/" }: Props) {
         const user = data.session?.user;
         if (!user) {
           setIsAuthenticated(false);
-          setDisplayName("Guest");
           return;
         }
 
         setIsAuthenticated(true);
         try {
-          const username = await getOrCreateUsername(user);
-          if (mounted) {
-            setDisplayName(username);
-          }
+          await getOrCreateUsername(user);
         } catch {
-          if (mounted) {
-            setDisplayName(user.email ?? "Player");
-          }
+          // profile creation failed, auth still valid
         }
       } catch {
         if (mounted) {
           setIsAuthenticated(false);
-          setDisplayName("Guest");
         }
       }
     };
@@ -241,20 +226,14 @@ export default function SudokuGame({ basePath = "/" }: Props) {
       const user = session?.user;
       if (!user) {
         setIsAuthenticated(false);
-        setDisplayName("Guest");
         return;
       }
 
       setIsAuthenticated(true);
       try {
-        const username = await getOrCreateUsername(user);
-        if (mounted) {
-          setDisplayName(username);
-        }
+        await getOrCreateUsername(user);
       } catch {
-        if (mounted) {
-          setDisplayName(user.email ?? "Player");
-        }
+        // ignore
       }
     });
 
@@ -408,7 +387,6 @@ export default function SudokuGame({ basePath = "/" }: Props) {
       const user = data.session?.user;
       if (!user) {
         setIsAuthenticated(false);
-        setDisplayName("Guest");
         queuePendingScore(score, `Solved. +${points} points pending. Log in to save them.`);
         return;
       }
@@ -476,35 +454,35 @@ export default function SudokuGame({ basePath = "/" }: Props) {
 
   return (
     <main className="container">
-      <NavBar displayName={displayName} isAuthenticated={isAuthenticated} onConnect={() => router.push("/login")} />
       <section className="game-panel">
-        <h1>Sudoku</h1>
-        <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap", marginBottom: "0.8rem" }}>
-          {difficultyValues.map((d) => (
-            <button
-              key={d}
-              className={d === difficulty ? "primary" : ""}
-              type="button"
-              onClick={() => {
-                setActiveDigit(null);
-                setSelected(null);
-                router.replace(`${basePath}?difficulty=${d}&new=1`);
-              }}
-            >
-              New {difficultyLabels[d]}
-            </button>
-          ))}
-        </div>
-
-        <p>
-          Difficulty: <strong>{difficultyLabels[game.difficulty]}</strong> | Timer: <strong>{formatSeconds(game.elapsedSeconds)}</strong> | {game.paused ? "Paused" : "Running"}
-        </p>
-
-        <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
-          <button onClick={togglePause} disabled={savedScore || isSubmittingScore || victoryLocked}>
+        <div className="game-bar">
+          <button
+            type="button"
+            className="home-btn"
+            onClick={() => router.push("/")}
+            aria-label="Go to home"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
+            </svg>
+          </button>
+          <span className="game-bar-info">
+            <strong>{difficultyLabels[game.difficulty]}</strong>
+            <span className="game-bar-sep">·</span>
+            <strong>{formatSeconds(game.elapsedSeconds)}</strong>
+            {game.paused ? <span className="game-bar-sep text-muted">Paused</span> : null}
+          </span>
+          <button
+            type="button"
+            onClick={togglePause}
+            disabled={savedScore || isSubmittingScore || victoryLocked}
+          >
             {game.paused ? "Resume" : "Pause"}
           </button>
-          {pendingScore && !savedScore ? (
+        </div>
+
+        {pendingScore && !savedScore ? (
+          <div style={{ marginBottom: "0.5rem" }}>
             <button
               type="button"
               className="primary"
@@ -519,8 +497,8 @@ export default function SudokuGame({ basePath = "/" }: Props) {
             >
               {isAuthenticated ? "Save pending points" : "Connect to save points"}
             </button>
-          ) : null}
-        </div>
+          </div>
+        ) : null}
 
         <div className="grid-wrap">
           <div className={`grid ${game.paused ? "paused" : ""}`} aria-label="sudoku grid" style={savedScore || isSubmittingScore || victoryLocked ? { pointerEvents: "none", opacity: 0.65 } : undefined}>
@@ -648,7 +626,7 @@ export default function SudokuGame({ basePath = "/" }: Props) {
                   onClick={() => {
                     setActiveDigit(null);
                     setSelected(null);
-                    router.replace(`${basePath}?difficulty=${d}&new=1`);
+                    router.replace(`/game?difficulty=${d}&new=1`);
                   }}
                 >
                   New {difficultyLabels[d]}
