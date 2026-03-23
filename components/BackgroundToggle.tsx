@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Button from "@/components/Button";
 
 type ThemeMode = "pink" | "swiss_alp" | "paris" | "leopard" | "yquem" | "grimpe" | "chocolat";
 
@@ -81,9 +82,8 @@ export default function BackgroundToggle() {
 
   return (
     <div className="settings-menu" ref={rootRef}>
-      <button
+      <Button
         className="settings-trigger"
-        type="button"
         onClick={() => setOpen((prev) => !prev)}
         aria-haspopup="menu"
         aria-expanded={open}
@@ -93,74 +93,22 @@ export default function BackgroundToggle() {
           <path d="M19.14 12.94a7.92 7.92 0 0 0 .06-.94 7.92 7.92 0 0 0-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.5 7.5 0 0 0-1.62-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.57.23-1.11.54-1.62.94l-2.39-.96a.5.5 0 0 0-.6.22L2.7 8.84a.5.5 0 0 0 .12.64L4.85 11.06c-.04.31-.05.62-.05.94 0 .32.01.63.05.94L2.82 14.52a.5.5 0 0 0-.12.64l1.92 3.32a.5.5 0 0 0 .6.22l2.39-.96c.5.4 1.05.72 1.62.94l.36 2.54a.5.5 0 0 0 .5.42h3.84a.5.5 0 0 0 .5-.42l.36-2.54c.57-.23 1.12-.54 1.62-.94l2.39.96a.5.5 0 0 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58ZM12 15.2A3.2 3.2 0 1 1 12 8.8a3.2 3.2 0 0 1 0 6.4Z" />
         </svg>
         <span>Settings</span>
-      </button>
+      </Button>
 
       {open ? (
         <div className="settings-panel" role="menu" aria-label="Theme settings">
           <p className="settings-title">Theme</p>
-          <button
-            type="button"
-            role="menuitemradio"
-            aria-checked={theme === "pink"}
-            className={theme === "pink" ? "active" : ""}
-            onClick={() => applyTheme("pink")}
-          >
-            Pink
-          </button>
-          <button
-            type="button"
-            role="menuitemradio"
-            aria-checked={theme === "swiss_alp"}
-            className={theme === "swiss_alp" ? "active" : ""}
-            onClick={() => applyTheme("swiss_alp")}
-          >
-            Swiss Alp
-          </button>
-          <button
-            type="button"
-            role="menuitemradio"
-            aria-checked={theme === "paris"}
-            className={theme === "paris" ? "active" : ""}
-            onClick={() => applyTheme("paris")}
-          >
-            Paris
-          </button>
-          <button
-            type="button"
-            role="menuitemradio"
-            aria-checked={theme === "leopard"}
-            className={theme === "leopard" ? "active" : ""}
-            onClick={() => applyTheme("leopard")}
-          >
-            Leopard
-          </button>
-          <button
-            type="button"
-            role="menuitemradio"
-            aria-checked={theme === "yquem"}
-            className={theme === "yquem" ? "active" : ""}
-            onClick={() => applyTheme("yquem")}
-          >
-            Yquem
-          </button>
-          <button
-            type="button"
-            role="menuitemradio"
-            aria-checked={theme === "grimpe"}
-            className={theme === "grimpe" ? "active" : ""}
-            onClick={() => applyTheme("grimpe")}
-          >
-            Grimpe
-          </button>
-          <button
-            type="button"
-            role="menuitemradio"
-            aria-checked={theme === "chocolat"}
-            className={theme === "chocolat" ? "active" : ""}
-            onClick={() => applyTheme("chocolat")}
-          >
-            Chocolat
-          </button>
+          {(["pink", "swiss_alp", "paris", "leopard", "yquem", "grimpe", "chocolat"] as const).map((t) => (
+            <Button
+              key={t}
+              role="menuitemradio"
+              aria-checked={theme === t}
+              className={theme === t ? "active" : ""}
+              onClick={() => applyTheme(t)}
+            >
+              {t === "swiss_alp" ? "Swiss Alp" : t.charAt(0).toUpperCase() + t.slice(1)}
+            </Button>
+          ))}
         </div>
       ) : null}
     </div>

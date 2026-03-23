@@ -1,9 +1,10 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { assertSupabaseEnv, supabase } from "@/lib/supabase";
 import { isUsernameAvailable, sanitizeUsernameInput } from "@/lib/profile";
+import Button from "@/components/Button";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -29,7 +30,7 @@ export default function LoginPage() {
     });
   }, [router]);
 
-  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
     setLoading(true);
@@ -105,14 +106,14 @@ export default function LoginPage() {
             minLength={6}
             style={{ padding: "0.7rem", borderRadius: 10, border: "1px solid #d1d5db" }}
           />
-          <button className="primary" disabled={loading}>
+          <Button type="submit" variant="primary" disabled={loading}>
             {loading ? "Please wait..." : mode === "login" ? "Log in" : "Create account"}
-          </button>
+          </Button>
         </form>
 
-        <button style={{ marginTop: "0.8rem" }} onClick={() => setMode(mode === "login" ? "signup" : "login")}>
+        <Button style={{ marginTop: "0.8rem" }} onClick={() => setMode(mode === "login" ? "signup" : "login")}>
           Switch to {mode === "login" ? "Sign up" : "Log in"}
-        </button>
+        </Button>
 
         {error ? <p className="text-danger">{error}</p> : null}
       </section>

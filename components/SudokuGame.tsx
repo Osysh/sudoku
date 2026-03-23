@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getOrCreateUsername } from "@/lib/profile";
+import Button from "@/components/Button";
 import { assertSupabaseEnv, supabase } from "@/lib/supabase";
 import { calculatePoints, createSudoku, formatSeconds, validateProgress } from "@/lib/sudoku";
 import { Difficulty, SudokuGameState } from "@/lib/types";
@@ -456,8 +457,7 @@ export default function SudokuGame() {
     <main className="container">
       <section className="game-panel">
         <div className="game-bar">
-          <button
-            type="button"
+          <Button
             className="home-btn"
             onClick={() => router.push("/")}
             aria-label="Go to home"
@@ -465,27 +465,25 @@ export default function SudokuGame() {
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
             </svg>
-          </button>
+          </Button>
           <span className="game-bar-info">
             <strong>{difficultyLabels[game.difficulty]}</strong>
             <span className="game-bar-sep">·</span>
             <strong>{formatSeconds(game.elapsedSeconds)}</strong>
             {game.paused ? <span className="game-bar-sep text-muted">Paused</span> : null}
           </span>
-          <button
-            type="button"
+          <Button
             onClick={togglePause}
             disabled={savedScore || isSubmittingScore || victoryLocked}
           >
             {game.paused ? "Resume" : "Pause"}
-          </button>
+          </Button>
         </div>
 
         {pendingScore && !savedScore ? (
           <div style={{ marginBottom: "0.5rem" }}>
-            <button
-              type="button"
-              className="primary"
+            <Button
+              variant="primary"
               disabled={isSubmittingScore || !supabaseConfigured}
               onClick={() => {
                 if (isAuthenticated) {
@@ -496,7 +494,7 @@ export default function SudokuGame() {
               }}
             >
               {isAuthenticated ? "Save pending points" : "Connect to save points"}
-            </button>
+            </Button>
           </div>
         ) : null}
 
@@ -556,9 +554,9 @@ export default function SudokuGame() {
           </div>
           {game.paused ? (
             <div className="grid-pause-overlay">
-              <button type="button" className="primary" onClick={togglePause}>
+              <Button variant="primary" onClick={togglePause}>
                 Resume
-              </button>
+              </Button>
             </div>
           ) : null}
         </div>
@@ -569,15 +567,12 @@ export default function SudokuGame() {
               const completed = digitCounts[digit] >= 9;
               const selectedDigit = highlightedDigit === digit;
               return (
-                <button
+                <Button
                   key={digit}
-                  type="button"
                   disabled={completed || savedScore || isSubmittingScore || victoryLocked}
                   onClick={() => {
                     setActiveDigit(digit);
-                    if (!selected) {
-                      return;
-                    }
+                    if (!selected) return;
                     updateCellValue(selected.row, selected.col, digit);
                   }}
                   style={{
@@ -589,22 +584,19 @@ export default function SudokuGame() {
                   aria-label={`Highlight digit ${digit}`}
                 >
                   {digit}
-                </button>
+                </Button>
               );
             })}
-            <button
-              type="button"
+            <Button
               disabled={!selectedIsEditable || savedScore || isSubmittingScore || victoryLocked}
               onClick={() => {
-                if (!selected) {
-                  return;
-                }
+                if (!selected) return;
                 updateCellValue(selected.row, selected.col, 0);
               }}
               aria-label="Clear selected cell"
             >
               Clear
-            </button>
+            </Button>
           </div>
         ) : null}
 
@@ -620,9 +612,8 @@ export default function SudokuGame() {
             </p>
             <div className="completion-modal-actions">
               {difficultyValues.map((d) => (
-                <button
+                <Button
                   key={`modal-${d}`}
-                  type="button"
                   onClick={() => {
                     setActiveDigit(null);
                     setSelected(null);
@@ -630,11 +621,11 @@ export default function SudokuGame() {
                   }}
                 >
                   New {difficultyLabels[d]}
-                </button>
+                </Button>
               ))}
-              <button type="button" className="primary" onClick={() => router.push("/leaderboard")}>
+              <Button variant="primary" onClick={() => router.push("/leaderboard")}>
                 Go to leaderboard
-              </button>
+              </Button>
             </div>
           </div>
         </div>

@@ -1,10 +1,10 @@
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
-import { Lora } from "next/font/google";
+import { Bodoni_Moda } from "next/font/google";
 import PwaRegister from "@/components/PwaRegister";
 import BackgroundToggle from "@/components/BackgroundToggle";
 
-const lora = Lora({ subsets: ["latin"], display: "swap" });
+const bodoni = Bodoni_Moda({ subsets: ["latin"], display: "swap", variable: "--font-main", weight: ["400", "700"], style: "normal" });
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
 const withBasePath = (path: string) => `${basePath}${path}`;
@@ -25,7 +25,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={lora.className} data-theme="pink" suppressHydrationWarning>
+      <body className={bodoni.variable} data-theme="pink" suppressHydrationWarning>
         <PwaRegister />
         <div className="theme-floating">
           <BackgroundToggle />

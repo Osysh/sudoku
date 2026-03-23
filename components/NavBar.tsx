@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import Button from "@/components/Button";
 
 type Props = {
   displayName: string;
@@ -27,9 +28,9 @@ export default function NavBar({ displayName, isAuthenticated = true, onConnect 
       <div className="nav-right">
         <span>{displayName}</span>
         {isAuthenticated ? (
-          <button onClick={handleLogout}>Log out</button>
+          <Button onClick={handleLogout}>Log out</Button>
         ) : (
-          <button onClick={() => (onConnect ? onConnect() : router.push("/login"))}>Connect</button>
+          <Button onClick={() => (onConnect ? onConnect() : router.push("/login"))}>Connect</Button>
         )}
       </div>
     </header>
