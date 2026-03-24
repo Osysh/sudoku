@@ -59,6 +59,7 @@ export default function SudokuGame() {
   const forceNew = params.get("new") === "1";
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [displayName, setDisplayName] = useState("");
   const [supabaseConfigured, setSupabaseConfigured] = useState(true);
   const [game, setGame] = useState<SudokuGameState | null>(null);
   const [selected, setSelected] = useState<{ row: number; col: number } | null>(null);
@@ -75,21 +76,6 @@ export default function SudokuGame() {
   );
   const isPaused = game?.paused ?? true;
 
-  const queuePendingScore = useCallback((score: Omit<PendingScore, "createdAt">, message: string) => {
-    const pending: PendingScore = {
-      ...score,
-      createdAt: Date.now()
-    };
-
-    localStorage.setItem(PENDING_SCORE_KEY, JSON.stringify(pending));
-    localStorage.removeItem(GAME_STORAGE_KEY);
-    setPendingScore(pending);
-    setVictoryLocked(true);
-    setSavedScore(false);
-    setIsSubmittingScore(false);
-    setStatus(message);
-  }, []);
-
   const submitPendingScore = useCallback(async () => {
     if (!pendingScore || isSubmittingScore || savedScore || !supabaseConfigured) {
       return;
@@ -99,37 +85,47 @@ export default function SudokuGame() {
 
     try {
       const { data, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError) {
-        throw sessionError;
-      }
+      if (sessionError) throw sessionError;
 
       const user = data.session?.user;
       if (!user) {
         setIsAuthenticated(false);
-        setStatus("Log in to save your pending points.");
+        setStatus("Log in to save your score.");
+        setIsSubmittingScore(false);
+        return;
+      }
+
+      let username: string;
+      try {
+        username = await getOrCreateUsername(user);
+        setDisplayName(username);
+      } catch (profileErr) {
+        setStatus(`Save failed — profile error: ${(profileErr as Error).message}`);
         setIsSubmittingScore(false);
         return;
       }
 
       const { error } = await supabase.from("scores").insert({
         user_id: user.id,
+        username,
         difficulty: pendingScore.difficulty,
         completion_seconds: pendingScore.completionSeconds,
         points: pendingScore.points
       });
 
       if (error) {
-        setStatus("Could not save your pending points yet. Try again once connected.");
+        setStatus(`Save failed — ${error.message}`);
         setIsSubmittingScore(false);
         return;
       }
 
       localStorage.removeItem(PENDING_SCORE_KEY);
       setPendingScore(null);
+      setSavedScore(true);
       setIsSubmittingScore(false);
-      setStatus(`Pending score saved. +${pendingScore.points} points recorded.`);
-    } catch {
-      setStatus("Could not save your pending points yet. Try again once connected.");
+      setStatus(`+${pendingScore.points} points saved to leaderboard.`);
+    } catch (err) {
+      setStatus(`Save failed — ${(err as Error).message}`);
       setIsSubmittingScore(false);
     }
   }, [isSubmittingScore, pendingScore, savedScore, supabaseConfigured]);
@@ -206,13 +202,15 @@ export default function SudokuGame() {
 
         setIsAuthenticated(true);
         try {
-          await getOrCreateUsername(user);
+          const name = await getOrCreateUsername(user);
+          if (mounted) setDisplayName(name);
         } catch {
-          // profile creation failed, auth still valid
+          if (mounted) setDisplayName(user.email?.split("@")[0] ?? "Player");
         }
       } catch {
         if (mounted) {
           setIsAuthenticated(false);
+          setDisplayName("");
         }
       }
     };
@@ -227,14 +225,16 @@ export default function SudokuGame() {
       const user = session?.user;
       if (!user) {
         setIsAuthenticated(false);
+        setDisplayName("");
         return;
       }
 
       setIsAuthenticated(true);
       try {
-        await getOrCreateUsername(user);
+        const name = await getOrCreateUsername(user);
+        if (mounted) setDisplayName(name);
       } catch {
-        // ignore
+        if (mounted) setDisplayName(user.email?.split("@")[0] ?? "Player");
       }
     });
 
@@ -363,44 +363,63 @@ export default function SudokuGame() {
     setIsSubmittingScore(true);
 
     const points = calculatePoints(game.difficulty, game.elapsedSeconds);
-    const score = {
+
+    // Always persist to localStorage first — score is never lost regardless of what happens next
+    const pending: PendingScore = {
       difficulty: game.difficulty,
       completionSeconds: game.elapsedSeconds,
-      points
+      points,
+      createdAt: Date.now()
     };
+    localStorage.setItem(PENDING_SCORE_KEY, JSON.stringify(pending));
+    localStorage.removeItem(GAME_STORAGE_KEY);
+    setPendingScore(pending);
 
     if (!supabaseConfigured) {
-      queuePendingScore(score, `Solved offline. +${points} points pending. Connect to save them.`);
+      setIsSubmittingScore(false);
+      setStatus(`Solved. +${points} points pending — connect to save.`);
       return;
     }
 
     if (typeof navigator !== "undefined" && !navigator.onLine) {
-      queuePendingScore(score, `Solved offline. +${points} points pending. Connect to save them.`);
+      setIsSubmittingScore(false);
+      setStatus(`Solved offline. +${points} points pending — connect to save.`);
       return;
     }
 
     try {
       const { data, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError) {
-        throw sessionError;
-      }
+      if (sessionError) throw sessionError;
 
       const user = data.session?.user;
       if (!user) {
         setIsAuthenticated(false);
-        queuePendingScore(score, `Solved. +${points} points pending. Log in to save them.`);
+        setIsSubmittingScore(false);
+        setStatus(`Solved. +${points} points pending — log in to save.`);
+        return;
+      }
+
+      let username: string;
+      try {
+        username = await getOrCreateUsername(user);
+        setDisplayName(username);
+      } catch (profileErr) {
+        setIsSubmittingScore(false);
+        setStatus(`Solved. +${points} pts pending — profile error: ${(profileErr as Error).message}`);
         return;
       }
 
       const { error } = await supabase.from("scores").insert({
         user_id: user.id,
+        username,
         difficulty: game.difficulty,
         completion_seconds: game.elapsedSeconds,
         points
       });
 
       if (error) {
-        queuePendingScore(score, `Solved. +${points} points pending. Connect to save them.`);
+        setIsSubmittingScore(false);
+        setStatus(`Solved. +${points} pts pending — save failed: ${error.message}`);
         return;
       }
 
@@ -410,10 +429,11 @@ export default function SudokuGame() {
       setSavedScore(true);
       setIsSubmittingScore(false);
       setStatus(`Solved. +${points} points recorded.`);
-    } catch {
-      queuePendingScore(score, `Solved. +${points} points pending. Connect to save them.`);
+    } catch (err) {
+      setIsSubmittingScore(false);
+      setStatus(`Solved. +${points} pts pending — error: ${(err as Error).message}`);
     }
-  }, [game, isSubmittingScore, queuePendingScore, savedScore, supabaseConfigured]);
+  }, [game, isSubmittingScore, savedScore, supabaseConfigured]);
 
   useEffect(() => {
     if (!game || game.paused || savedScore || isSubmittingScore || victoryLocked) {
@@ -471,6 +491,8 @@ export default function SudokuGame() {
             <span className="game-bar-sep">·</span>
             <strong>{formatSeconds(game.elapsedSeconds)}</strong>
             {game.paused ? <span className="game-bar-sep text-muted">Paused</span> : null}
+            <span className="game-bar-sep">·</span>
+            <span className="text-muted">{displayName || (isAuthenticated ? "Player" : "Guest")}</span>
           </span>
           <Button
             onClick={togglePause}
@@ -608,7 +630,11 @@ export default function SudokuGame() {
           <div className="completion-modal">
             <h2 id="completion-title">Game finished</h2>
             <p className="text-muted">
-              {savedScore ? "Your points were saved." : "Your game is solved. You can start another game or view the leaderboard."}
+              {savedScore
+                ? `+${status.match(/\+(\d+)/)?.[1] ?? "?"} points saved to the leaderboard.`
+                : isAuthenticated
+                  ? status
+                  : "Log in to save your score to the leaderboard."}
             </p>
             <div className="completion-modal-actions">
               {difficultyValues.map((d) => (
@@ -623,6 +649,16 @@ export default function SudokuGame() {
                   New {difficultyLabels[d]}
                 </Button>
               ))}
+              {!isAuthenticated && (
+                <Button variant="primary" onClick={() => router.push("/login")}>
+                  Log in to save score
+                </Button>
+              )}
+              {isAuthenticated && !savedScore && pendingScore && (
+                <Button variant="primary" disabled={isSubmittingScore} onClick={() => void submitPendingScore()}>
+                  {isSubmittingScore ? "Saving..." : "Retry saving score"}
+                </Button>
+              )}
               <Button variant="primary" onClick={() => router.push("/leaderboard")}>
                 Go to leaderboard
               </Button>

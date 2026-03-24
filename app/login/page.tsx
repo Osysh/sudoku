@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { assertSupabaseEnv, supabase } from "@/lib/supabase";
 import { isUsernameAvailable, sanitizeUsernameInput } from "@/lib/profile";
 import Button from "@/components/Button";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
@@ -62,7 +63,8 @@ export default function LoginPage() {
         });
         if (signupError) throw signupError;
       }
-      router.replace("/");
+      const next = searchParams.get("next") ?? "/";
+      router.replace(next);
     } catch (err) {
       setError((err as Error).message);
     } finally {

@@ -7,7 +7,15 @@ const resolvedSupabaseAnonKey = supabaseAnonKey?.trim() || "placeholder-anon-key
 
 export const supabase = createClient(
   resolvedSupabaseUrl,
-  resolvedSupabaseAnonKey
+  resolvedSupabaseAnonKey,
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      storage: typeof window !== "undefined" ? window.localStorage : undefined,
+    },
+  }
 );
 
 export function assertSupabaseEnv(): void {
