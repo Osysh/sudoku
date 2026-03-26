@@ -1,6 +1,6 @@
 # Sudoky
 
-Sudoky is a local-first Sudoku app built with Next.js + React and Supabase auth/database.
+Sudoky is a local-first Sudoku app built with Next.js + React and Supabase auth/database. 
 
 ## Features
 
