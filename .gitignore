@@ -137,3 +137,7 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Local self-hosted Supabase artifacts
+supabase/.env
+supabase/volumes/
