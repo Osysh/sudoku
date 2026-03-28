@@ -365,6 +365,12 @@ inspector_port = 8083
 # The Deno major version to use.
 deno_version = 2
 
+[functions.signin-with-username]
+enabled = true
+verify_jwt = false
+import_map = "./functions/signin-with-username/deno.json"
+entrypoint = "./functions/signin-with-username/index.ts"
+
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 
