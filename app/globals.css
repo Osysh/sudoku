@@ -184,7 +184,7 @@ button {
   background: var(--surface);
   color: var(--text);
   padding: 0.6rem 0.9rem;
-  border-radius: 10px;
+  border-radius: 6px;
   cursor: pointer;
   font-family: inherit;
   font-size: inherit;
@@ -206,17 +206,27 @@ button:disabled {
   opacity: 0.6;
 }
 
+.skeleton-block {
+  display: inline-block;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #eceff3 0%, #dfe5eb 50%, #eceff3 100%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.1s linear infinite;
+}
+
+@keyframes skeleton-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
 .settings-menu {
   position: relative;
   z-index: 20;
   max-width: 100%;
-}
-
-.theme-floating {
-  position: fixed;
-  right: 14px;
-  top: 14px;
-  z-index: 90;
 }
 
 .settings-trigger {
@@ -289,6 +299,14 @@ button:disabled {
   margin: 0;
 }
 
+.grid-top-actions {
+  width: 100%;
+  max-width: 540px;
+  margin: 0.2rem auto 0;
+  display: flex;
+  justify-content: flex-end;
+}
+
 .grid.paused {
   filter: blur(5px);
 }
@@ -337,10 +355,20 @@ button:disabled {
   width: 100%;
   max-width: 540px;
   margin: 0.9rem auto 0;
-  display: flex;
-  justify-content: center;
-  gap: 0.45rem;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(11, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+
+.digit-pad button {
+  width: 100%;
+  min-width: 0;
+  padding: 0.5rem 0;
+}
+
+.digit-pad button:last-child {
+  grid-column: span 2;
+  white-space: nowrap;
 }
 
 .cell.fixed {
@@ -405,8 +433,10 @@ td {
 .home-root {
   min-height: 100vh;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 0.75rem;
   padding: 2rem 1.25rem;
 }
 
@@ -430,6 +460,13 @@ td {
   font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--text);
+}
+
+.home-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
 }
 
 .home-user {
@@ -517,6 +554,35 @@ td {
   opacity: 0.45;
 }
 
+.home-auth-footer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.home-auth-link {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.85rem;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  padding: 0.2rem 0.35rem;
+}
+
+.home-auth-link:hover {
+  color: var(--text);
+  background: transparent;
+}
+
+.home-auth-status {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
 /* Game bar */
 .game-bar {
   display: flex;
@@ -535,6 +601,50 @@ td {
 
 .game-bar-sep {
   color: var(--muted);
+}
+
+.game-result-banner {
+  width: 100%;
+  max-width: 540px;
+  margin: 0.25rem auto 0.5rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.9);
+  display: grid;
+  gap: 0.55rem;
+}
+
+.game-result-banner--victory {
+  border-color: #86efac;
+  background: #f0fdf4;
+}
+
+.game-result-banner--defeat {
+  border-color: #fca5a5;
+  background: #fff1f2;
+}
+
+.game-result-title {
+  margin: 0;
+  font-weight: 700;
+}
+
+.game-result-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.game-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.game-controls .settings-trigger {
+  height: 40px;
+  padding: 0 0.75rem;
 }
 
 .home-btn {
@@ -605,8 +715,7 @@ td {
   }
 
   .digit-pad button {
-    min-width: 38px;
-    padding: 0.45rem 0.6rem;
+    padding: 0.45rem 0;
   }
 
   .settings-menu {
@@ -619,6 +728,13 @@ td {
     padding: 0;
     justify-content: center;
     border-radius: 12px;
+  }
+
+  .game-controls .settings-trigger {
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    justify-content: center;
   }
 
   .settings-trigger span {

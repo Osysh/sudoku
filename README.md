@@ -100,34 +100,90 @@ Notes:
 - `NEXT_PUBLIC_BASE_PATH` is injected automatically in CI as `/<repo-name>`.
 - Output is static (`out/`) and published by GitHub Pages.
 
+new local version: 
+```
+docker compose -f supabase/docker-compose.yml up
+```
 
-## Features/améliorations to implement
+Init 
+cp supabase/.env.example supabase/.env
 
-### ASAP
-- somewhere keep track of best time in each level
-- personnaliser l'email d'insciption
+Access Supabase Studio on `http://localhost:8000` with credentials from `supabase/.env`.
 
-### Style
-- create new background themes
-    - amytis léopard
-    - maxime bateau, musique
-    - soso rose
-- change button for background
-- hide game when pause 
+App schema auto-init behavior (self-hosted Docker):
+- `supabase/docker-compose.yml` mounts `./init.sql`
+  into `/docker-entrypoint-initdb.d/init-scripts/100-sudoky-init.sql`.
+- This SQL runs automatically only when `supabase/volumes/db/data` (PGDATA) is empty.
+- Restarting containers with existing PGDATA does not re-run init scripts.
 
-### Gamification
-- rooms for players with the same game -> timing competition
-- mode "contre la montre" with given time -> +1000 points if successful 
+Optional seed behavior:
+- `supabase/seed.sql` is separated from schema init.
+- In `supabase/docker-compose.yml`, the seed mount is commented by default:
+  - `# - ./seed.sql:/docker-entrypoint-initdb.d/init-scripts/110-sudoky-seed.sql:Z`
+- Uncomment it for local/dev demos.
+- Keep it commented for production environments.
 
-### Other
-- in Data base: link user id etc, add display name in authent DB
-- contact page for issues
-- include checkbox with/without help 
-- availability of game in french, german, english, japanese
-- printable versions in pdf with choice of diffulty levels (mix, or only 1 level)
-- mobile app
-- son victoire ou playlist intégrée
-- trophées pour 
-- version offline qui se remet à jour sur l'app dès que reconnecté au wifi
-- option d'annoter dans coin case (?)
-- snapshot of intermediate version, possibility to come back to a previous version
+Force re-init from scratch:
+```bash
+docker compose -f supabase/docker-compose.yml down
+rm -rf supabase/volumes/db/data
+docker compose -f supabase/docker-compose.yml up
+```
+
+
+https://supabase.com/docs/guides/local-development/overview
+
+## Supabase CLI quick commands
+
+Show help:
+```bash
+npx supabase --help
+```
+
+Common local-dev commands:
+```bash
+npx supabase init
+npx supabase start
+npx supabase status
+npx supabase stop
+npx supabase db --help
+npx supabase migration --help
+npx supabase seed --help
+npx supabase services
+```
+
+Use Supabase CLI credentials in app `.env.local`:
+```bash
+cp .env.example .env.local
+npx supabase start
+npx supabase status -o env
+```
+
+Then copy these values from the `status -o env` output into `.env.local`:
+- `API_URL` -> `NEXT_PUBLIC_SUPABASE_URL`
+- `ANON_KEY` -> `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+
+Example:
+```env
+NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<ANON_KEY_FROM_SUPABASE_STATUS>
+```
+
+Create and apply a new init migration with Supabase CLI:
+```bash
+# If `supabase` is not globally installed, use npx.
+# `supabase migration new init` -> zsh: command not found: supabase
+npx supabase migration new init
+
+# Reset local DB and apply migrations from supabase/migrations
+npx supabase db reset
+```
+
+Expected output notes:
+- `Created new migration at supabase/migrations/<timestamp>_init.sql`
+- `Applying migration <timestamp>_init.sql...`
+- `NOTICE: extension "pgcrypto" already exists, skipping` is normal.
+- `WARN: no files matched pattern: supabase/seed.sql` means `db.seed.sql_paths` in `supabase/config.toml` points to a file that does not exist at that path.
+  - If your seed is at `supabase/seed.sql`, set:
+    - `[db.seed]`
+    - `sql_paths = ["./seed.sql"]`

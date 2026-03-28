@@ -13,7 +13,7 @@ export type SudokuGameState = {
 
 export type ScoreRow = {
   id: string;
-  username: string;
+  user_id: string;
   difficulty: Difficulty;
   completion_seconds: number;
   points: number;

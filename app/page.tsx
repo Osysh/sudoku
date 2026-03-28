@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { getOrCreateUsername } from "@/lib/profile";
 import { assertSupabaseEnv, supabase } from "@/lib/supabase";
 import Button from "@/components/Button";
+import BackgroundToggle from "@/components/BackgroundToggle";
 
 const GAME_STORAGE_KEY = "sudoky-active-game";
 
@@ -17,6 +18,12 @@ export default function HomePage() {
   useEffect(() => {
     setHasActiveGame(!!localStorage.getItem(GAME_STORAGE_KEY));
   }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setIsAuthenticated(false);
+    setDisplayName("Guest");
+  };
 
   useEffect(() => {
     try {
@@ -71,24 +78,12 @@ export default function HomePage() {
     };
   }, []);
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setIsAuthenticated(false);
-    setDisplayName("Guest");
-  };
-
   return (
     <main className="home-root">
       <div className="home-page">
-        <h1 className="home-title">Sudoku</h1>
-
-        <div className="home-user">
-          <span className="home-username">{displayName}</span>
-          {isAuthenticated ? (
-            <Button onClick={handleLogout}>Log out</Button>
-          ) : (
-            <Button onClick={() => router.push("/login")}>Log in</Button>
-          )}
+        <div className="home-header">
+          <h1 className="home-title">Sudoku</h1>
+          <BackgroundToggle />
         </div>
 
         {hasActiveGame ? (
@@ -133,6 +128,21 @@ export default function HomePage() {
             <span>Multiplayer</span>
           </Button>
         </div>
+
+      </div>
+      <div className="home-auth-footer">
+        {isAuthenticated ? (
+          <>
+            <p className="home-auth-status">Connected as &quot;{displayName}&quot;</p>
+            <button type="button" className="home-auth-link" onClick={handleLogout}>
+              Log out
+            </button>
+          </>
+        ) : (
+          <button type="button" className="home-auth-link" onClick={() => router.push("/login?mode=login")}>
+            Sign in
+          </button>
+        )}
       </div>
     </main>
   );
