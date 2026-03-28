@@ -6,17 +6,35 @@ import { getOrCreateUsername } from "@/lib/profile";
 import { assertSupabaseEnv, supabase } from "@/lib/supabase";
 import Button from "@/components/Button";
 import BackgroundToggle from "@/components/BackgroundToggle";
+import { DailyChallengeRow, getLocalDateKey, getStoredGameResumePath } from "@/lib/dailyChallenge";
+import { Difficulty } from "@/lib/types";
+import { DIFFICULTY_VALUES, QUERY_PARAMS, ROUTES } from "@/lib/constants";
 
-const GAME_STORAGE_KEY = "sudoky-active-game";
+type DailyChallengeState = {
+  loading: boolean;
+  available: boolean;
+  completed: boolean;
+  difficulty: Difficulty | null;
+  date: string;
+  message: string | null;
+};
 
 export default function HomePage() {
   const router = useRouter();
   const [displayName, setDisplayName] = useState("Guest");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [hasActiveGame, setHasActiveGame] = useState(false);
+  const [resumePath, setResumePath] = useState<string | null>(null);
+  const [daily, setDaily] = useState<DailyChallengeState>({
+    loading: true,
+    available: false,
+    completed: false,
+    difficulty: null,
+    date: getLocalDateKey(),
+    message: null
+  });
 
   useEffect(() => {
-    setHasActiveGame(!!localStorage.getItem(GAME_STORAGE_KEY));
+    setResumePath(getStoredGameResumePath(localStorage));
   }, []);
 
   const handleLogout = async () => {
@@ -34,13 +52,72 @@ export default function HomePage() {
 
     let mounted = true;
 
+    const loadDaily = async () => {
+      setDaily((prev) => ({ ...prev, loading: true, date: getLocalDateKey() }));
+      const date = getLocalDateKey();
+
+      const { data: rows, error } = await supabase.rpc("get_daily_challenge_for_date", {
+        p_local_date: date
+      });
+
+      if (error) {
+        if (mounted) {
+          setDaily({
+            loading: false,
+            available: false,
+            completed: false,
+            difficulty: null,
+            date,
+            message: "Daily challenge is unavailable right now."
+          });
+        }
+        return;
+      }
+
+      const row = (rows?.[0] as DailyChallengeRow | undefined) ?? null;
+      if (!row) {
+        if (mounted) {
+          setDaily({
+            loading: false,
+            available: false,
+            completed: false,
+            difficulty: null,
+            date,
+            message: "No daily challenge has been generated yet."
+          });
+        }
+        return;
+      }
+
+      if (mounted) {
+        setDaily({
+          loading: false,
+          available: true,
+          completed: !!row.is_completed,
+          difficulty: row.difficulty,
+          date: row.challenge_date,
+          message: null
+        });
+      }
+    };
+
     const syncAuth = async () => {
       try {
         const { data, error } = await supabase.auth.getSession();
         if (error) throw error;
         if (!mounted) return;
         const user = data.session?.user;
-        if (!user) return;
+        if (!user) {
+          setDaily({
+            loading: false,
+            available: false,
+            completed: false,
+            difficulty: null,
+            date: getLocalDateKey(),
+            message: "Sign in to play today's daily challenge."
+          });
+          return;
+        }
         setIsAuthenticated(true);
         try {
           const name = await getOrCreateUsername(user);
@@ -48,8 +125,18 @@ export default function HomePage() {
         } catch {
           if (mounted) setDisplayName(user.email ?? "Player");
         }
+        await loadDaily();
       } catch {
-        // stay as guest
+        if (mounted) {
+          setDaily({
+            loading: false,
+            available: false,
+            completed: false,
+            difficulty: null,
+            date: getLocalDateKey(),
+            message: "Daily challenge is unavailable right now."
+          });
+        }
       }
     };
 
@@ -61,6 +148,14 @@ export default function HomePage() {
       if (!user) {
         setIsAuthenticated(false);
         setDisplayName("Guest");
+        setDaily({
+          loading: false,
+          available: false,
+          completed: false,
+          difficulty: null,
+          date: getLocalDateKey(),
+          message: "Sign in to play today's daily challenge."
+        });
         return;
       }
       setIsAuthenticated(true);
@@ -70,6 +165,7 @@ export default function HomePage() {
       } catch {
         if (mounted) setDisplayName(user.email ?? "Player");
       }
+      await loadDaily();
     });
 
     return () => {
@@ -86,19 +182,42 @@ export default function HomePage() {
           <BackgroundToggle />
         </div>
 
-        {hasActiveGame ? (
+        {resumePath ? (
           <div className="home-section">
-            <Button variant="primary" className="home-resume-btn" onClick={() => router.push("/game")}>
+            <Button variant="primary" className="home-resume-btn" onClick={() => router.push(resumePath)}>
               Resume game
             </Button>
           </div>
         ) : null}
 
         <div className="home-section">
+          <p className="home-section-label">Daily challenge</p>
+          {daily.loading ? <p className="home-daily-note">Loading today&apos;s challenge...</p> : null}
+          {!daily.loading && daily.message ? <p className="home-daily-note">{daily.message}</p> : null}
+          {!daily.loading && isAuthenticated && daily.available ? (
+            <Button
+              variant="primary"
+              className="home-resume-btn"
+              disabled={daily.completed}
+              onClick={() => router.push(`${ROUTES.GAME}?${QUERY_PARAMS.MODE}=daily&${QUERY_PARAMS.DATE}=${daily.date}`)}
+            >
+              {daily.completed
+                ? "Daily challenge completed"
+                : `Play daily (${daily.difficulty ?? "medium"})`}
+            </Button>
+          ) : null}
+          {!daily.loading && !isAuthenticated ? (
+            <Button className="home-resume-btn" onClick={() => router.push(`${ROUTES.LOGIN}?${QUERY_PARAMS.MODE}=login`)}>
+              Sign in for daily challenge
+            </Button>
+          ) : null}
+        </div>
+
+        <div className="home-section">
           <p className="home-section-label">New game</p>
           <div className="home-difficulty">
-            {(["easy", "medium", "hard"] as const).map((d) => (
-              <Button key={d} onClick={() => router.push(`/game?difficulty=${d}&new=1`)}>
+            {DIFFICULTY_VALUES.map((d) => (
+              <Button key={d} onClick={() => router.push(`${ROUTES.GAME}?${QUERY_PARAMS.DIFFICULTY}=${d}&${QUERY_PARAMS.NEW}=1`)}>
                 {d.charAt(0).toUpperCase() + d.slice(1)}
               </Button>
             ))}
@@ -108,7 +227,7 @@ export default function HomePage() {
         <div className="home-bottom-row">
           <Button
             className="home-icon-btn"
-            onClick={() => router.push("/leaderboard")}
+            onClick={() => router.push(ROUTES.LEADERBOARD)}
             aria-label="Leaderboard"
           >
             <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -139,7 +258,7 @@ export default function HomePage() {
             </button>
           </>
         ) : (
-          <button type="button" className="home-auth-link" onClick={() => router.push("/login?mode=login")}>
+          <button type="button" className="home-auth-link" onClick={() => router.push(`${ROUTES.LOGIN}?${QUERY_PARAMS.MODE}=login`)}>
             Sign in
           </button>
         )}

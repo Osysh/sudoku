@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { assertSupabaseEnv, supabase } from "@/lib/supabase";
 import { isUsernameAvailable, sanitizeUsernameInput } from "@/lib/profile";
 import Button from "@/components/Button";
+import { QUERY_PARAMS, ROUTES } from "@/lib/constants";
 
 function LoginPageContent() {
   const router = useRouter();
@@ -19,7 +20,7 @@ function LoginPageContent() {
   const [info, setInfo] = useState<string | null>(null);
 
   useEffect(() => {
-    const requestedMode = searchParams.get("mode");
+    const requestedMode = searchParams.get(QUERY_PARAMS.MODE);
     if (requestedMode === "signup") {
       setMode("signup");
       return;
@@ -39,7 +40,7 @@ function LoginPageContent() {
 
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) {
-        router.replace("/");
+        router.replace(ROUTES.HOME);
       }
     });
   }, [router]);
@@ -75,7 +76,7 @@ function LoginPageContent() {
           password
         });
         if (loginError) throw loginError;
-        router.replace("/");
+        router.replace(ROUTES.HOME);
         return;
       }
 

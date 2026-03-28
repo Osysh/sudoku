@@ -8,22 +8,28 @@ import BackgroundToggle from "@/components/BackgroundToggle";
 import { assertSupabaseEnv, supabase } from "@/lib/supabase";
 import { calculatePoints, createSudoku, formatSeconds, validateProgress } from "@/lib/sudoku";
 import { Difficulty, SudokuGameState } from "@/lib/types";
-
-const GAME_STORAGE_KEY = "sudoky-active-game";
-const difficultyValues: Difficulty[] = ["easy", "medium", "hard"];
-const difficultyLabels: Record<Difficulty, string> = {
-  easy: "Easy",
-  medium: "Medium",
-  hard: "Hard"
-};
+import { DIFFICULTY_LABELS, DIFFICULTY_VALUES, QUERY_PARAMS, ROUTES } from "@/lib/constants";
+import {
+  canonicalPuzzleToBoard,
+  DailyChallengeRow,
+  getDailyGameStorageKey,
+  getLocalDateKey,
+  isIsoDateKey,
+  STANDARD_GAME_STORAGE_KEY
+} from "@/lib/dailyChallenge";
 
 type GameOutcome = "playing" | "victory" | "defeat";
 
 export default function SudokuGame() {
   const router = useRouter();
   const params = useSearchParams();
-  const requestedDifficulty = (params.get("difficulty") as Difficulty) || "easy";
-  const forceNew = params.get("new") === "1";
+  const requestedDifficulty = (params.get(QUERY_PARAMS.DIFFICULTY) as Difficulty) || "easy";
+  const forceNew = params.get(QUERY_PARAMS.NEW) === "1";
+  const isDailyMode = params.get(QUERY_PARAMS.MODE) === "daily";
+  const requestedDailyDate = params.get(QUERY_PARAMS.DATE);
+  const localDate = getLocalDateKey();
+  const dailyDate = isIsoDateKey(requestedDailyDate) ? requestedDailyDate : localDate;
+  const gameStorageKey = isDailyMode ? getDailyGameStorageKey(dailyDate) : STANDARD_GAME_STORAGE_KEY;
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [supabaseConfigured, setSupabaseConfigured] = useState(true);
@@ -38,44 +44,142 @@ export default function SudokuGame() {
   const [finalScore, setFinalScore] = useState<number | null>(null);
 
   const difficulty: Difficulty = useMemo(
-    () => (difficultyValues.includes(requestedDifficulty) ? requestedDifficulty : "easy"),
+    () => (DIFFICULTY_VALUES.includes(requestedDifficulty) ? requestedDifficulty : "easy"),
     [requestedDifficulty]
   );
   const isPaused = game?.paused ?? true;
 
   useEffect(() => {
-    if (!forceNew) {
-      const rawGame = localStorage.getItem(GAME_STORAGE_KEY);
-      if (rawGame) {
-        try {
-          const saved = JSON.parse(rawGame) as SudokuGameState;
+    let cancelled = false;
+
+    const resetRoundState = () => {
+      setSavedScore(false);
+      setIsSubmittingScore(false);
+      setVictoryLocked(false);
+      setOutcome("playing");
+      setFinalScore(null);
+      setStatus("");
+    };
+
+    const loadSavedGame = (): SudokuGameState | null => {
+      const rawGame = localStorage.getItem(gameStorageKey);
+      if (!rawGame) {
+        return null;
+      }
+      try {
+        return JSON.parse(rawGame) as SudokuGameState;
+      } catch {
+        localStorage.removeItem(gameStorageKey);
+        return null;
+      }
+    };
+
+    const startLocalGame = () => {
+      if (!forceNew) {
+        const saved = loadSavedGame();
+        if (saved) {
           setGame(saved);
           return;
-        } catch {
-          localStorage.removeItem(GAME_STORAGE_KEY);
         }
       }
+
+      const { puzzle, solution } = createSudoku(difficulty);
+      setGame({
+        puzzle,
+        solution,
+        board: puzzle.map((r) => [...r]),
+        startedAt: Date.now(),
+        elapsedSeconds: 0,
+        paused: false,
+        difficulty
+      });
+      localStorage.removeItem(gameStorageKey);
+    };
+
+    const startDailyGame = async () => {
+      if (!isIsoDateKey(dailyDate)) {
+        setStatus("Invalid daily challenge date.");
+        return;
+      }
+
+      try {
+        assertSupabaseEnv();
+      } catch {
+        setStatus("Daily challenge is not configured.");
+        return;
+      }
+
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) {
+        throw sessionError;
+      }
+
+      const user = sessionData.session?.user;
+      if (!user) {
+        setIsAuthenticated(false);
+        router.replace(`${ROUTES.LOGIN}?${QUERY_PARAMS.MODE}=login`);
+        return;
+      }
+
+      const { data: rows, error } = await supabase.rpc("get_daily_challenge_for_date", {
+        p_local_date: dailyDate
+      });
+      if (error) {
+        throw error;
+      }
+
+      const row = (rows?.[0] as DailyChallengeRow | undefined) ?? null;
+      if (!row) {
+        setStatus("No daily challenge is available for this date.");
+        return;
+      }
+
+      if (row.is_completed) {
+        setStatus("Today's daily challenge is already completed.");
+        router.replace(ROUTES.HOME);
+        return;
+      }
+
+      if (!forceNew) {
+        const saved = loadSavedGame();
+        if (saved) {
+          setGame(saved);
+          return;
+        }
+      }
+
+      const puzzle = canonicalPuzzleToBoard(row.puzzle_canonical);
+      if (!cancelled) {
+        setGame({
+          puzzle,
+          solution: puzzle.map((line) => [...line]),
+          board: puzzle.map((line) => [...line]),
+          startedAt: Date.now(),
+          elapsedSeconds: 0,
+          paused: false,
+          difficulty: row.difficulty,
+          gameName: `Daily ${row.challenge_date}`
+        });
+      }
+    };
+
+    setGame(null);
+    resetRoundState();
+
+    if (isDailyMode) {
+      void startDailyGame().catch(() => {
+        if (!cancelled) {
+          setStatus("Could not load daily challenge.");
+        }
+      });
+    } else {
+      startLocalGame();
     }
 
-    const { puzzle, solution } = createSudoku(difficulty);
-    setGame({
-      puzzle,
-      solution,
-      board: puzzle.map((r) => [...r]),
-      startedAt: Date.now(),
-      elapsedSeconds: 0,
-      paused: false,
-      difficulty
-    });
-
-    setSavedScore(false);
-    setIsSubmittingScore(false);
-    setVictoryLocked(false);
-    setOutcome("playing");
-    setFinalScore(null);
-    setStatus("");
-    localStorage.removeItem(GAME_STORAGE_KEY);
-  }, [difficulty, forceNew]);
+    return () => {
+      cancelled = true;
+    };
+  }, [dailyDate, difficulty, forceNew, gameStorageKey, isDailyMode, router]);
 
   useEffect(() => {
     try {
@@ -186,8 +290,8 @@ export default function SudokuGame() {
     if (!game || savedScore || victoryLocked) {
       return;
     }
-    localStorage.setItem(GAME_STORAGE_KEY, JSON.stringify(game));
-  }, [game, savedScore, victoryLocked]);
+    localStorage.setItem(gameStorageKey, JSON.stringify(game));
+  }, [game, gameStorageKey, savedScore, victoryLocked]);
 
   const updateCellValue = useCallback((row: number, col: number, nextValue: number) => {
     if (!game || game.paused || game.puzzle[row][col] !== 0 || savedScore || isSubmittingScore || victoryLocked) {
@@ -266,7 +370,7 @@ export default function SudokuGame() {
       if (!user) {
         setIsAuthenticated(false);
         setIsSubmittingScore(false);
-        router.push("/login");
+        router.push(ROUTES.LOGIN);
         return;
       }
 
@@ -274,21 +378,23 @@ export default function SudokuGame() {
         user_id: user.id,
         difficulty: game.difficulty,
         completion_seconds: game.elapsedSeconds,
-        points: finalScore
+        points: finalScore,
+        is_daily_challenge: isDailyMode,
+        challenge_date: isDailyMode ? dailyDate : null
       });
 
       if (error) {
         throw error;
       }
 
-      localStorage.removeItem(GAME_STORAGE_KEY);
+      localStorage.removeItem(gameStorageKey);
       setSavedScore(true);
-      router.push("/leaderboard");
+      router.push(ROUTES.LEADERBOARD);
     } catch {
-      setStatus("Could not save score. Please try again.");
+      setStatus("Could not save score. It may already be submitted for today.");
       setIsSubmittingScore(false);
     }
-  }, [finalScore, game, isSubmittingScore, outcome, router, savedScore, supabaseConfigured]);
+  }, [dailyDate, finalScore, game, gameStorageKey, isDailyMode, isSubmittingScore, outcome, router, savedScore, supabaseConfigured]);
 
   const retryCurrentGrid = useCallback(() => {
     setGame((prev) => {
@@ -340,7 +446,7 @@ export default function SudokuGame() {
   if (!game) {
     return (
       <main className="container">
-        <p>Loading...</p>
+        <p>{status || "Loading..."}</p>
       </main>
     );
   }
@@ -352,7 +458,7 @@ export default function SudokuGame() {
     setGame((prev) => {
       if (!prev) return prev;
       const next = { ...prev, paused: !prev.paused };
-      localStorage.setItem(GAME_STORAGE_KEY, JSON.stringify(next));
+      localStorage.setItem(gameStorageKey, JSON.stringify(next));
       return next;
     });
   };
@@ -366,7 +472,7 @@ export default function SudokuGame() {
         <div className="game-bar">
           <Button
             className="home-btn"
-            onClick={() => router.push("/")}
+            onClick={() => router.push(ROUTES.HOME)}
             aria-label="Go to home"
           >
             <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -374,7 +480,13 @@ export default function SudokuGame() {
             </svg>
           </Button>
           <span className="game-bar-info">
-            <strong>{difficultyLabels[game.difficulty]}</strong>
+            <strong>{DIFFICULTY_LABELS[game.difficulty]}</strong>
+            {isDailyMode ? (
+              <>
+                <span className="game-bar-sep">·</span>
+                <strong>Daily {dailyDate}</strong>
+              </>
+            ) : null}
             <span className="game-bar-sep">·</span>
             <strong>{formatSeconds(game.elapsedSeconds)}</strong>
             {game.paused ? <span className="game-bar-sep text-muted">Paused</span> : null}
@@ -399,7 +511,7 @@ export default function SudokuGame() {
               <Button variant="primary" onClick={retryCurrentGrid}>
                 Retry grid
               </Button>
-              <Button onClick={() => router.push("/")}>Home</Button>
+              <Button onClick={() => router.push(ROUTES.HOME)}>Home</Button>
             </div>
           </div>
         ) : null}
