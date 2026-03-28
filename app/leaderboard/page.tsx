@@ -47,7 +47,7 @@ export default function LeaderboardPage() {
 
         const { data, error: fetchError } = await supabase
           .from("scores")
-          .select("id,username,difficulty,completion_seconds,points,created_at");
+          .select("id,user_id,difficulty,completion_seconds,points,created_at");
 
         if (fetchError) {
           setError(fetchError.message);
@@ -55,18 +55,41 @@ export default function LeaderboardPage() {
         }
 
         const rows = (data as ScoreRow[]) ?? [];
+        if (!rows.length) {
+          setPlayers([]);
+          return;
+        }
+
+        const userIds = Array.from(new Set(rows.map((row) => row.user_id)));
+        const { data: profilesData, error: profilesError } = await supabase
+          .from("profiles")
+          .select("user_id,username")
+          .in("user_id", userIds);
+
+        if (profilesError) {
+          setError(profilesError.message);
+          return;
+        }
+
+        const usernameByUserId = new Map<string, string>(
+          (profilesData ?? []).map((profile) => [profile.user_id, profile.username])
+        );
+
         const aggregate = new Map<string, LeaderboardPlayerRow>();
 
         for (const row of rows) {
-          const existing = aggregate.get(row.username);
+          const username = usernameByUserId.get(row.user_id);
+          if (!username) continue;
+
+          const existing = aggregate.get(username);
           if (existing) {
             existing.totalPoints += row.points;
             existing.gamesPlayed += 1;
             continue;
           }
 
-          aggregate.set(row.username, {
-            username: row.username,
+          aggregate.set(username, {
+            username,
             totalPoints: row.points,
             gamesPlayed: 1
           });
