@@ -2,43 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { User } from "@supabase/supabase-js";
 import { getOrCreateUsername } from "@/lib/profile";
 import { assertSupabaseEnv, supabase } from "@/lib/supabase";
 import Button from "@/components/Button";
 import BackgroundToggle from "@/components/BackgroundToggle";
 
 const GAME_STORAGE_KEY = "sudoky-active-game";
-const PENDING_SCORE_KEY = "sudoky-pending-score";
-
-type PendingScore = {
-  difficulty: string;
-  completionSeconds: number;
-  points: number;
-};
-
-function readPendingScore(): PendingScore | null {
-  try {
-    const raw = localStorage.getItem(PENDING_SCORE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<PendingScore>;
-    if (
-      typeof parsed.difficulty !== "string" ||
-      typeof parsed.completionSeconds !== "number" ||
-      typeof parsed.points !== "number"
-    ) return null;
-    return parsed as PendingScore;
-  } catch {
-    return null;
-  }
-}
 
 export default function HomePage() {
   const router = useRouter();
   const [displayName, setDisplayName] = useState("Guest");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [hasActiveGame, setHasActiveGame] = useState(false);
-  const [scoreNotice, setScoreNotice] = useState<string | null>(null);
 
   useEffect(() => {
     setHasActiveGame(!!localStorage.getItem(GAME_STORAGE_KEY));
@@ -59,37 +34,6 @@ export default function HomePage() {
 
     let mounted = true;
 
-    // Resolve username and submit any pending score for this user
-    const syncUser = async (user: User) => {
-      let name: string;
-      try {
-        name = await getOrCreateUsername(user);
-      } catch {
-        name = user.email?.split("@")[0] ?? "Player";
-      }
-      if (!mounted) return;
-      setDisplayName(name);
-
-      // Submit pending score if there is one
-      const pending = readPendingScore();
-      if (!pending) return;
-      try {
-        const { error } = await supabase.from("scores").insert({
-          user_id: user.id,
-          username: name,
-          difficulty: pending.difficulty,
-          completion_seconds: pending.completionSeconds,
-          points: pending.points,
-        });
-        if (!error && mounted) {
-          localStorage.removeItem(PENDING_SCORE_KEY);
-          setScoreNotice(`+${pending.points} points saved to leaderboard!`);
-        }
-      } catch {
-        // will retry next time
-      }
-    };
-
     const syncAuth = async () => {
       try {
         const { data, error } = await supabase.auth.getSession();
@@ -98,7 +42,12 @@ export default function HomePage() {
         const user = data.session?.user;
         if (!user) return;
         setIsAuthenticated(true);
-        void syncUser(user);
+        try {
+          const name = await getOrCreateUsername(user);
+          if (mounted) setDisplayName(name);
+        } catch {
+          if (mounted) setDisplayName(user.email ?? "Player");
+        }
       } catch {
         // stay as guest
       }
@@ -112,11 +61,15 @@ export default function HomePage() {
       if (!user) {
         setIsAuthenticated(false);
         setDisplayName("Guest");
-        setScoreNotice(null);
         return;
       }
       setIsAuthenticated(true);
-      void syncUser(user);
+      try {
+        const name = await getOrCreateUsername(user);
+        if (mounted) setDisplayName(name);
+      } catch {
+        if (mounted) setDisplayName(user.email ?? "Player");
+      }
     });
 
     return () => {
@@ -132,10 +85,6 @@ export default function HomePage() {
           <h1 className="home-title">Sudoku</h1>
           <BackgroundToggle />
         </div>
-
-        {scoreNotice ? (
-          <p style={{ color: "green", textAlign: "center", margin: "0.25rem 0" }}>{scoreNotice}</p>
-        ) : null}
 
         {hasActiveGame ? (
           <div className="home-section">
