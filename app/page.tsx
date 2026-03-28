@@ -139,8 +139,8 @@ export default function HomePage() {
             </button>
           </>
         ) : (
-          <button type="button" className="home-auth-link" onClick={() => router.push("/login?mode=signup")}>
-            Sign up
+          <button type="button" className="home-auth-link" onClick={() => router.push("/login?mode=login")}>
+            Sign in
           </button>
         )}
       </div>

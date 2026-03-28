@@ -136,7 +136,7 @@ function LoginPageContent() {
         </form>
 
         <Button style={{ marginTop: "0.8rem" }} onClick={() => setMode(mode === "login" ? "signup" : "login")}>
-          Switch to {mode === "login" ? "Sign up" : "Log in"}
+          {mode === "login" ? "No account yet? Sign up" : "Already have an account? Sign in"}
         </Button>
 
         {info ? <p>{info}</p> : null}
