@@ -43,6 +43,14 @@ export default function SudokuGame() {
   );
   const isPaused = game?.paused ?? true;
 
+  const mostFrequentDigit = (puzzle: number[][]): number | null => {
+    const counts = new Array(10).fill(0);
+    for (const row of puzzle) for (const v of row) if (v > 0) counts[v]++;
+    let best = 0, bestCount = 0;
+    for (let d = 1; d <= 9; d++) if (counts[d] > bestCount) { bestCount = counts[d]; best = d; }
+    return best > 0 ? best : null;
+  };
+
   useEffect(() => {
     if (!forceNew) {
       const rawGame = localStorage.getItem(GAME_STORAGE_KEY);
@@ -50,6 +58,7 @@ export default function SudokuGame() {
         try {
           const saved = JSON.parse(rawGame) as SudokuGameState;
           setGame(saved);
+          setActiveDigit(mostFrequentDigit(saved.puzzle));
           return;
         } catch {
           localStorage.removeItem(GAME_STORAGE_KEY);
@@ -67,6 +76,7 @@ export default function SudokuGame() {
       paused: false,
       difficulty
     });
+    setActiveDigit(mostFrequentDigit(puzzle));
 
     setSavedScore(false);
     setIsSubmittingScore(false);
