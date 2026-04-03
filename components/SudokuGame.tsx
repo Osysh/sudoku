@@ -49,6 +49,14 @@ export default function SudokuGame() {
   );
   const isPaused = game?.paused ?? true;
 
+  const mostFrequentDigit = (puzzle: number[][]): number | null => {
+    const counts = new Array(10).fill(0);
+    for (const row of puzzle) for (const v of row) if (v > 0) counts[v]++;
+    let best = 0, bestCount = 0;
+    for (let d = 1; d <= 9; d++) if (counts[d] > bestCount) { bestCount = counts[d]; best = d; }
+    return best > 0 ? best : null;
+  };
+
   useEffect(() => {
     let cancelled = false;
 
@@ -79,6 +87,7 @@ export default function SudokuGame() {
         const saved = loadSavedGame();
         if (saved) {
           setGame(saved);
+          setActiveDigit(mostFrequentDigit(saved.puzzle));
           return;
         }
       }
@@ -93,6 +102,7 @@ export default function SudokuGame() {
         paused: false,
         difficulty
       });
+      setActiveDigit(mostFrequentDigit(puzzle));
       localStorage.removeItem(gameStorageKey);
     };
 
@@ -144,12 +154,14 @@ export default function SudokuGame() {
         const saved = loadSavedGame();
         if (saved) {
           setGame(saved);
+          setActiveDigit(mostFrequentDigit(saved.puzzle));
           return;
         }
       }
 
       const puzzle = canonicalPuzzleToBoard(row.puzzle_canonical);
       if (!cancelled) {
+        setActiveDigit(mostFrequentDigit(puzzle));
         setGame({
           puzzle,
           solution: puzzle.map((line) => [...line]),
