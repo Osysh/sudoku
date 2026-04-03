@@ -6,6 +6,7 @@ import NavBar from "@/components/NavBar";
 import { assertSupabaseEnv, supabase } from "@/lib/supabase";
 import { ScoreRow } from "@/lib/types";
 import { getOrCreateUsername } from "@/lib/profile";
+import { ROUTES } from "@/lib/constants";
 
 type LeaderboardPlayerRow = {
   username: string;
@@ -38,7 +39,7 @@ export default function LeaderboardPage() {
         if (!user) {
           setIsAuthLoading(false);
           setIsLeaderboardLoading(false);
-          router.replace("/login");
+          router.replace(ROUTES.LOGIN);
           return;
         }
         const username = await getOrCreateUsername(user);

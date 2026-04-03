@@ -4,25 +4,20 @@
 
 // Setup type definitions for built-in Supabase Runtime APIs
 import { createClient } from "@supabase/supabase-js"
-
-const USERNAME_REGEX = /^[a-z0-9_]{3,20}$/
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-}
+import { USERNAME_REGEX } from "../../../lib/constants.ts"
+import { FUNCTION_CORS_HEADERS } from "../_shared/constants.ts"
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+    headers: { "Content-Type": "application/json", ...FUNCTION_CORS_HEADERS.BASE },
   })
 }
 
 Deno.serve(async (req) => {
   // Browser preflight support.
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: CORS_HEADERS })
+    return new Response("ok", { headers: FUNCTION_CORS_HEADERS.BASE })
   }
 
   if (req.method !== "POST") {

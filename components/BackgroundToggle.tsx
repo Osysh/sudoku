@@ -2,11 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import Button from "@/components/Button";
+import { STORAGE_KEYS, THEME_IMAGE_BY_MODE, THEME_MODES, ThemeMode } from "@/lib/constants";
 
-type ThemeMode = "pink" | "swiss_alp" | "paris" | "leopard" | "yquem" | "grimpe" | "chocolat";
-
-const STORAGE_KEY = "sudoky-theme-mode";
-const LEGACY_STORAGE_KEY = "sudoky-bg-mode";
 const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || "";
 
 function normalizeTheme(value: string | null): ThemeMode {
@@ -32,16 +29,7 @@ function normalizeTheme(value: string | null): ThemeMode {
 }
 
 function applyThemeToBody(theme: ThemeMode) {
-  const imageByTheme: Record<ThemeMode, string | null> = {
-    pink: null,
-    swiss_alp: "/swiss.jpg",
-    paris: "/paris.jpeg",
-    leopard: "/leopard.jpeg",
-    yquem: "/yquem.jpeg",
-    grimpe: "/grimpe.jpg",
-    chocolat: "/chocolat.jpg"
-  };
-  const imagePath = imageByTheme[theme];
+  const imagePath = THEME_IMAGE_BY_MODE[theme];
   document.body.setAttribute("data-theme", theme);
   document.body.style.setProperty("--theme-bg-image", imagePath ? `url("${BASE_PATH}${imagePath}")` : "none");
 }
@@ -52,7 +40,7 @@ export default function BackgroundToggle() {
   const rootRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(LEGACY_STORAGE_KEY);
+    const saved = localStorage.getItem(STORAGE_KEYS.THEME_MODE) ?? localStorage.getItem(STORAGE_KEYS.LEGACY_BG_MODE);
     const initialTheme = normalizeTheme(saved);
     setTheme(initialTheme);
     applyThemeToBody(initialTheme);
@@ -75,7 +63,7 @@ export default function BackgroundToggle() {
 
   const applyTheme = (nextTheme: ThemeMode) => {
     setTheme(nextTheme);
-    localStorage.setItem(STORAGE_KEY, nextTheme);
+    localStorage.setItem(STORAGE_KEYS.THEME_MODE, nextTheme);
     applyThemeToBody(nextTheme);
     setOpen(false);
   };
@@ -98,7 +86,7 @@ export default function BackgroundToggle() {
       {open ? (
         <div className="settings-panel" role="menu" aria-label="Theme settings">
           <p className="settings-title">Theme</p>
-          {(["pink", "swiss_alp", "paris", "leopard", "yquem", "grimpe", "chocolat"] as const).map((t) => (
+          {THEME_MODES.map((t) => (
             <Button
               key={t}
               role="menuitemradio"
