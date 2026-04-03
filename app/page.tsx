@@ -12,9 +12,11 @@ import DailyChallengeCard from "@/components/home/DailyChallengeCard";
 import NewGameSection from "@/components/home/NewGameSection";
 import BottomActions from "@/components/home/BottomActions";
 import { Difficulty } from "@/lib/types";
+import { useT } from "@/lib/i18n/useT";
 
 export default function HomePage() {
   const router = useRouter();
+  const t = useT();
   const { isAuthenticated, displayName, isLoading: isAuthLoading, user } = useAuthProfile();
   const resumePath = useResumePath();
   const daily = useDailyChallengeStatus(isAuthLoading ? undefined : user);
@@ -43,7 +45,7 @@ export default function HomePage() {
         {resumePath ? (
           <div className="home-section">
             <Button variant="primary" className="home-resume-btn" onClick={() => router.push(resumePath)}>
-              Resume game
+              {t("home.resumeGame")}
             </Button>
           </div>
         ) : null}
@@ -56,14 +58,14 @@ export default function HomePage() {
       <div className="home-auth-footer">
         {isAuthenticated ? (
           <>
-            <p className="home-auth-status">Connected as &quot;{displayName}&quot;</p>
+            <p className="home-auth-status">{t("home.connectedAs", { name: displayName })}</p>
             <button type="button" className="home-auth-link" onClick={handleLogout}>
-              Log out
+              {t("common.logOut")}
             </button>
           </>
         ) : (
           <button type="button" className="home-auth-link" onClick={handleSignIn}>
-            Sign in
+            {t("common.signIn")}
           </button>
         )}
       </div>

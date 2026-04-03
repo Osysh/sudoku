@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { User } from "@supabase/supabase-js";
 import { DailyChallengeRow, getLocalDateKey } from "@/lib/dailyChallenge";
 import { supabase, assertSupabaseEnv } from "@/lib/supabase";
+import { useT } from "@/lib/i18n/useT";
 import { Difficulty } from "@/lib/types";
 
 export type DailyChallengeStatus = {
@@ -26,6 +27,7 @@ const initialStatus = (): DailyChallengeStatus => ({
 
 export function useDailyChallengeStatus(user: User | null | undefined): DailyChallengeStatus {
   const [daily, setDaily] = useState<DailyChallengeStatus>(initialStatus);
+  const t = useT();
 
   useEffect(() => {
     let mounted = true;
@@ -46,7 +48,7 @@ export function useDailyChallengeStatus(user: User | null | undefined): DailyCha
         completed: false,
         difficulty: null,
         date: getLocalDateKey(),
-        message: "Daily challenge is unavailable right now."
+        message: t("daily.unavailable")
       });
       return () => {
         mounted = false;
@@ -60,7 +62,7 @@ export function useDailyChallengeStatus(user: User | null | undefined): DailyCha
         completed: false,
         difficulty: null,
         date: getLocalDateKey(),
-        message: "Sign in to play today's daily challenge."
+        message: t("daily.signInRequired")
       });
       return () => {
         mounted = false;
@@ -83,7 +85,7 @@ export function useDailyChallengeStatus(user: User | null | undefined): DailyCha
             completed: false,
             difficulty: null,
             date,
-            message: "Daily challenge is unavailable right now."
+            message: t("daily.unavailable")
           });
         }
         return;
@@ -98,7 +100,7 @@ export function useDailyChallengeStatus(user: User | null | undefined): DailyCha
             completed: false,
             difficulty: null,
             date,
-            message: "No daily challenge has been generated yet."
+            message: t("daily.notGenerated")
           });
         }
         return;
@@ -121,7 +123,7 @@ export function useDailyChallengeStatus(user: User | null | undefined): DailyCha
     return () => {
       mounted = false;
     };
-  }, [user]);
+  }, [t, user]);
 
   return daily;
 }

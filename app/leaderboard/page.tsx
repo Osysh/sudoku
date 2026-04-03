@@ -7,6 +7,7 @@ import { assertSupabaseEnv, supabase } from "@/lib/supabase";
 import { ScoreRow } from "@/lib/types";
 import { getOrCreateUsername } from "@/lib/profile";
 import { ROUTES } from "@/lib/constants";
+import { useT } from "@/lib/i18n/useT";
 
 type LeaderboardPlayerRow = {
   username: string;
@@ -16,6 +17,7 @@ type LeaderboardPlayerRow = {
 
 export default function LeaderboardPage() {
   const router = useRouter();
+  const t = useT();
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [players, setPlayers] = useState<LeaderboardPlayerRow[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -119,15 +121,15 @@ export default function LeaderboardPage() {
     return (
       <main className="container">
         <section className="card">
-          <h1>Leaderboard</h1>
-          <p className="text-muted">Loading rankings...</p>
+          <h1>{t("leaderboard.title")}</h1>
+          <p className="text-muted">{t("leaderboard.loadingRankings")}</p>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>
-                <th>#</th>
-                <th>Player</th>
-                <th>Games</th>
-                <th>Total Points</th>
+                <th>{t("leaderboard.rank")}</th>
+                <th>{t("leaderboard.player")}</th>
+                <th>{t("leaderboard.games")}</th>
+                <th>{t("leaderboard.totalPoints")}</th>
               </tr>
             </thead>
             <tbody>
@@ -157,7 +159,7 @@ export default function LeaderboardPage() {
   if (!displayName) {
     return (
       <main className="container">
-        <p>{error ?? "Redirecting..."}</p>
+        <p>{error ?? t("common.redirecting")}</p>
       </main>
     );
   }
@@ -166,16 +168,16 @@ export default function LeaderboardPage() {
     <main className="container">
       <NavBar displayName={displayName} />
       <section className="card">
-        <h1>Leaderboard</h1>
-        <p className="text-muted">One row per player, ranked by cumulative points across all games.</p>
+        <h1>{t("leaderboard.title")}</h1>
+        <p className="text-muted">{t("leaderboard.subtitle")}</p>
         {error ? <p className="text-danger">{error}</p> : null}
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr>
-              <th>#</th>
-              <th>Player</th>
-              <th>Games</th>
-              <th>Total Points</th>
+              <th>{t("leaderboard.rank")}</th>
+              <th>{t("leaderboard.player")}</th>
+              <th>{t("leaderboard.games")}</th>
+              <th>{t("leaderboard.totalPoints")}</th>
             </tr>
           </thead>
           <tbody>
@@ -207,7 +209,7 @@ export default function LeaderboardPage() {
             {!isLeaderboardLoading && !players.length ? (
               <tr>
                 <td colSpan={4} className="text-muted">
-                  No completed games yet.
+                  {t("leaderboard.empty")}
                 </td>
               </tr>
             ) : null}

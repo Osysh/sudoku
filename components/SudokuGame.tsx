@@ -8,7 +8,8 @@ import BackgroundToggle from "@/components/BackgroundToggle";
 import { assertSupabaseEnv, supabase } from "@/lib/supabase";
 import { calculatePoints, createSudoku, formatSeconds, validateProgress } from "@/lib/sudoku";
 import { Difficulty, SudokuGameState } from "@/lib/types";
-import { DIFFICULTY_LABELS, DIFFICULTY_VALUES, QUERY_PARAMS, ROUTES } from "@/lib/constants";
+import { DIFFICULTY_VALUES, QUERY_PARAMS, ROUTES } from "@/lib/constants";
+import { useT } from "@/lib/i18n/useT";
 import {
   canonicalPuzzleToBoard,
   DailyChallengeRow,
@@ -23,6 +24,7 @@ type GameOutcome = "playing" | "victory" | "defeat";
 export default function SudokuGame() {
   const router = useRouter();
   const params = useSearchParams();
+  const t = useT();
   const requestedDifficulty = (params.get(QUERY_PARAMS.DIFFICULTY) as Difficulty) || "easy";
   const forceNew = params.get(QUERY_PARAMS.NEW) === "1";
   const isDailyMode = params.get(QUERY_PARAMS.MODE) === "daily";
@@ -108,14 +110,14 @@ export default function SudokuGame() {
 
     const startDailyGame = async () => {
       if (!isIsoDateKey(dailyDate)) {
-        setStatus("Invalid daily challenge date.");
+        setStatus(t("game.invalidDailyDate"));
         return;
       }
 
       try {
         assertSupabaseEnv();
       } catch {
-        setStatus("Daily challenge is not configured.");
+        setStatus(t("game.dailyNotConfigured"));
         return;
       }
 
@@ -140,12 +142,12 @@ export default function SudokuGame() {
 
       const row = (rows?.[0] as DailyChallengeRow | undefined) ?? null;
       if (!row) {
-        setStatus("No daily challenge is available for this date.");
+        setStatus(t("game.noDailyForDate"));
         return;
       }
 
       if (row.is_completed) {
-        setStatus("Today's daily challenge is already completed.");
+        setStatus(t("game.dailyAlreadyCompleted"));
         router.replace(ROUTES.HOME);
         return;
       }
@@ -181,7 +183,7 @@ export default function SudokuGame() {
     if (isDailyMode) {
       void startDailyGame().catch(() => {
         if (!cancelled) {
-          setStatus("Could not load daily challenge.");
+          setStatus(t("game.couldNotLoadDaily"));
         }
       });
     } else {
@@ -191,7 +193,7 @@ export default function SudokuGame() {
     return () => {
       cancelled = true;
     };
-  }, [dailyDate, difficulty, forceNew, gameStorageKey, isDailyMode, router]);
+  }, [dailyDate, difficulty, forceNew, gameStorageKey, isDailyMode, router, t]);
 
   useEffect(() => {
     try {
@@ -361,12 +363,12 @@ export default function SudokuGame() {
     }
 
     if (!supabaseConfigured) {
-      setStatus("Score saving is not configured.");
+      setStatus(t("game.scoreNotConfigured"));
       return;
     }
 
     if (typeof navigator !== "undefined" && !navigator.onLine) {
-      setStatus("You are offline. Connect to save your score.");
+      setStatus(t("game.offlineCannotSave"));
       return;
     }
 
@@ -403,10 +405,10 @@ export default function SudokuGame() {
       setSavedScore(true);
       router.push(ROUTES.LEADERBOARD);
     } catch {
-      setStatus("Could not save score. It may already be submitted for today.");
+      setStatus(t("game.scoreSaveError"));
       setIsSubmittingScore(false);
     }
-  }, [dailyDate, finalScore, game, gameStorageKey, isDailyMode, isSubmittingScore, outcome, router, savedScore, supabaseConfigured]);
+  }, [dailyDate, finalScore, game, gameStorageKey, isDailyMode, isSubmittingScore, outcome, router, savedScore, supabaseConfigured, t]);
 
   const retryCurrentGrid = useCallback(() => {
     setGame((prev) => {
@@ -458,7 +460,7 @@ export default function SudokuGame() {
   if (!game) {
     return (
       <main className="container">
-        <p>{status || "Loading..."}</p>
+        <p>{status || t("common.loading")}</p>
       </main>
     );
   }
@@ -485,23 +487,23 @@ export default function SudokuGame() {
           <Button
             className="home-btn"
             onClick={() => router.push(ROUTES.HOME)}
-            aria-label="Go to home"
+            aria-label={t("game.goHome")}
           >
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
             </svg>
           </Button>
           <span className="game-bar-info">
-            <strong>{DIFFICULTY_LABELS[game.difficulty]}</strong>
+            <strong>{t(`difficulty.${game.difficulty}`)}</strong>
             {isDailyMode ? (
               <>
                 <span className="game-bar-sep">·</span>
-                <strong>Daily {dailyDate}</strong>
+                <strong>{t("game.dailyLabel", { date: dailyDate })}</strong>
               </>
             ) : null}
             <span className="game-bar-sep">·</span>
             <strong>{formatSeconds(game.elapsedSeconds)}</strong>
-            {game.paused ? <span className="game-bar-sep text-muted">Paused</span> : null}
+            {game.paused ? <span className="game-bar-sep text-muted">{t("game.paused")}</span> : null}
           </span>
           <div className="game-controls">
             <BackgroundToggle />
@@ -510,20 +512,20 @@ export default function SudokuGame() {
 
         {outcome === "victory" ? (
           <div className="game-result-banner game-result-banner--victory">
-            <p className="game-result-title">🏆 Victory! Score: {finalScore ?? 0}</p>
+            <p className="game-result-title">🏆 {t("game.victoryTitle", { score: finalScore ?? 0 })}</p>
             <Button variant="primary" disabled={isSubmittingScore} onClick={() => void saveScoreAndRedirect()}>
-              {isSubmittingScore ? "Saving..." : isAuthenticated ? "Save score" : "Log in to save score"}
+              {isSubmittingScore ? t("game.saving") : isAuthenticated ? t("game.saveScore") : t("game.logInToSave")}
             </Button>
           </div>
         ) : null}
         {outcome === "defeat" ? (
           <div className="game-result-banner game-result-banner--defeat">
-            <p className="game-result-title">Defeat. This grid has mistakes.</p>
+            <p className="game-result-title">{t("game.defeatTitle")}</p>
             <div className="game-result-actions">
               <Button variant="primary" onClick={retryCurrentGrid}>
-                Retry grid
+                {t("game.retryGrid")}
               </Button>
-              <Button onClick={() => router.push(ROUTES.HOME)}>Home</Button>
+              <Button onClick={() => router.push(ROUTES.HOME)}>{t("common.home")}</Button>
             </div>
           </div>
         ) : null}
@@ -534,13 +536,13 @@ export default function SudokuGame() {
               onClick={togglePause}
               disabled={savedScore || isSubmittingScore || victoryLocked}
             >
-              {game.paused ? "Resume" : "Pause"}
+              {game.paused ? t("common.resume") : t("common.pause")}
             </Button>
           </div>
         ) : null}
 
         <div className="grid-wrap">
-          <div className={`grid ${game.paused ? "paused" : ""}`} aria-label="sudoku grid" style={savedScore || isSubmittingScore || victoryLocked ? { pointerEvents: "none", opacity: 0.65 } : undefined}>
+          <div className={`grid ${game.paused ? "paused" : ""}`} aria-label={t("game.sudokuGrid")} style={savedScore || isSubmittingScore || victoryLocked ? { pointerEvents: "none", opacity: 0.65 } : undefined}>
             {game.board.map((rowVals, row) =>
               rowVals.map((value, col) => {
                 const fixed = game.puzzle[row][col] !== 0;
@@ -584,7 +586,7 @@ export default function SudokuGame() {
                         }
                       }}
                       style={{ fontWeight: fixed ? 700 : 400 }}
-                      aria-label={`row ${row + 1} col ${col + 1}`}
+                      aria-label={t("game.rowCol", { row: row + 1, col: col + 1 })}
                     >
                       {value === 0 ? "" : value}
                     </button>
@@ -596,7 +598,7 @@ export default function SudokuGame() {
           {game.paused ? (
             <div className="grid-pause-overlay">
               <Button variant="primary" onClick={togglePause}>
-                Resume
+                {t("common.resume")}
               </Button>
             </div>
           ) : null}
@@ -621,7 +623,7 @@ export default function SudokuGame() {
                     background: selectedDigit ? "var(--cell-same)" : undefined,
                     borderColor: selectedDigit ? "var(--digit-selected-border)" : undefined
                   }}
-                  aria-label={`Highlight digit ${digit}`}
+                  aria-label={t("game.highlightDigit", { digit })}
                 >
                   {digit}
                 </Button>
@@ -633,9 +635,9 @@ export default function SudokuGame() {
                 if (!selected) return;
                 updateCellValue(selected.row, selected.col, 0);
               }}
-              aria-label="Clear selected cell"
+              aria-label={t("game.clearSelectedCell")}
             >
-              Clear
+              {t("common.clear")}
             </Button>
           </div>
         ) : null}

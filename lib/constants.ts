@@ -16,7 +16,8 @@ export const STORAGE_KEYS = {
   ACTIVE_GAME: "sudoky-active-game",
   DAILY_GAME_PREFIX: "sudoky-daily-game-",
   THEME_MODE: "sudoky-theme-mode",
-  LEGACY_BG_MODE: "sudoky-bg-mode"
+  LEGACY_BG_MODE: "sudoky-bg-mode",
+  LOCALE: "sudoky-locale"
 } as const;
 
 export const DIFFICULTY_VALUES = ["easy", "medium", "hard"] as const;

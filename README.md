@@ -187,3 +187,13 @@ Expected output notes:
   - If your seed is at `supabase/seed.sql`, set:
     - `[db.seed]`
     - `sql_paths = ["./seed.sql"]`
+
+## Deploy to hosted Supabase
+
+```bash
+npx supabase login
+npx supabase link --project-ref <project-id>
+npx supabase db push
+npx supabase migration list
+npx supabase functions deploy <function-name> --project-ref <project-id>
+```

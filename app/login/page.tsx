@@ -6,9 +6,11 @@ import { assertSupabaseEnv, supabase } from "@/lib/supabase";
 import { isUsernameAvailable, sanitizeUsernameInput } from "@/lib/profile";
 import Button from "@/components/Button";
 import { QUERY_PARAMS, ROUTES } from "@/lib/constants";
+import { useT } from "@/lib/i18n/useT";
 
 function LoginPageContent() {
   const router = useRouter();
+  const t = useT();
   const searchParams = useSearchParams();
   const [identifier, setIdentifier] = useState("");
   const [email, setEmail] = useState("");
@@ -56,7 +58,7 @@ function LoginPageContent() {
       if (mode === "login") {
         const trimmed = identifier.trim().toLowerCase();
         if (!trimmed) {
-          throw new Error("Username or email is required.");
+          throw new Error(t("login.errors.usernameOrEmailRequired"));
         }
 
         let emailForLogin = trimmed;
@@ -64,9 +66,22 @@ function LoginPageContent() {
           const { data: mapped, error: mapError } = await supabase.functions.invoke("signin-with-username", {
             body: { username: trimmed }
           });
-          if (mapError) throw mapError;
+          if (mapError) {
+            const status =
+              (mapError as { context?: { status?: number }; status?: number }).context?.status ??
+              (mapError as { status?: number }).status;
+            const message = String((mapError as { message?: string }).message ?? "");
+
+            if (status === 503 || /service temporarily unavailable/i.test(message)) {
+              throw new Error(
+                t("login.errors.usernameSigninUnavailable")
+              );
+            }
+
+            throw mapError;
+          }
           if (!mapped?.email) {
-            throw new Error("Unknown username.");
+            throw new Error(t("login.errors.unknownUsername"));
           }
           emailForLogin = String(mapped.email);
         }
@@ -82,12 +97,12 @@ function LoginPageContent() {
 
       const normalizedUsername = sanitizeUsernameInput(username);
       if (normalizedUsername.length < 3) {
-        throw new Error("Username must be at least 3 chars (letters, numbers, underscores).");
+        throw new Error(t("login.errors.usernameMin"));
       }
 
       const available = await isUsernameAvailable(normalizedUsername);
       if (!available) {
-        throw new Error("Username already taken.");
+        throw new Error(t("login.errors.usernameTaken"));
       }
 
       const { data, error: signupError } = await supabase.auth.signUp({
@@ -105,7 +120,7 @@ function LoginPageContent() {
         await supabase.auth.signOut();
       }
 
-      setInfo("Account created. Please sign in.");
+      setInfo(t("login.accountCreated"));
       setMode("login");
       setIdentifier(email.trim().toLowerCase());
       setPassword("");
@@ -120,18 +135,18 @@ function LoginPageContent() {
   return (
     <main className="container" style={{ maxWidth: 420, paddingTop: "8vh" }}>
       <section className="card">
-        <h1>Sudoku</h1>
+        <h1>{t("common.appName")}</h1>
         <p className="text-muted">
           {mode === "login"
-            ? "Sign in with username (or email) and password."
-            : "Create account with email, username, and password."}
+            ? t("login.subtitleLogin")
+            : t("login.subtitleSignup")}
         </p>
         <form onSubmit={onSubmit} style={{ display: "grid", gap: "0.8rem" }}>
           {mode === "signup" ? (
             <>
               <input
                 type="email"
-                placeholder="Email"
+                placeholder={t("login.email")}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -139,7 +154,7 @@ function LoginPageContent() {
               />
               <input
                 type="text"
-                placeholder="Username (letters, numbers, underscore)"
+                placeholder={t("login.username")}
                 value={username}
                 onChange={(e) => setUsername(sanitizeUsernameInput(e.target.value))}
                 required
@@ -152,7 +167,7 @@ function LoginPageContent() {
           ) : (
             <input
               type="text"
-              placeholder="Username or email"
+              placeholder={t("login.usernameOrEmail")}
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
               required
@@ -161,7 +176,7 @@ function LoginPageContent() {
           )}
           <input
             type="password"
-            placeholder="Password"
+            placeholder={t("login.password")}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
@@ -169,12 +184,12 @@ function LoginPageContent() {
             style={{ padding: "0.7rem", borderRadius: 10, border: "1px solid #d1d5db" }}
           />
           <Button type="submit" variant="primary" disabled={loading}>
-            {loading ? "Please wait..." : mode === "login" ? "Log in" : "Create account"}
+            {loading ? t("login.pleaseWait") : mode === "login" ? t("login.logIn") : t("login.createAccount")}
           </Button>
         </form>
 
         <Button style={{ marginTop: "0.8rem" }} onClick={() => setMode(mode === "login" ? "signup" : "login")}>
-          {mode === "login" ? "No account yet? Sign up" : "Already have an account? Sign in"}
+          {mode === "login" ? t("login.noAccount") : t("login.alreadyHave")}
         </Button>
 
         {info ? <p>{info}</p> : null}

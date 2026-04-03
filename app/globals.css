@@ -276,6 +276,22 @@ button:disabled {
   border-color: var(--panel-active-border);
 }
 
+.settings-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 0.2rem 0 0.1rem;
+}
+
+.settings-lang-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.35rem;
+}
+
+.settings-lang-row button {
+  text-align: center;
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(9, minmax(0, 1fr));
@@ -556,11 +572,19 @@ td {
 }
 
 .home-auth-footer {
+  width: 100%;
+  max-width: 320px;
   display: flex;
   justify-content: center;
   align-items: center;
   gap: 0.5rem;
   flex-wrap: wrap;
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  padding: 0.45rem 0.9rem;
 }
 
 .home-auth-link {
