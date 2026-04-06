@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { assertSupabaseEnv, supabase } from "@/lib/supabase";
+import { useAuthProfile } from "@/lib/hooks/useAuthProfile";
 import { isUsernameAvailable, sanitizeUsernameInput } from "@/lib/profile";
 import Button from "@/components/Button";
 import { QUERY_PARAMS, ROUTES } from "@/lib/constants";
@@ -28,6 +29,7 @@ function LoginPageContent() {
   const router = useRouter();
   const t = useT();
   const searchParams = useSearchParams();
+  const { isAuthenticated, isLoading: isAuthLoading, isSupabaseConfigured } = useAuthProfile();
   const [identifier, setIdentifier] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -49,23 +51,15 @@ function LoginPageContent() {
   }, [searchParams]);
 
   useEffect(() => {
-    try {
-      assertSupabaseEnv();
-    } catch (err) {
-      setError((err as Error).message);
+    if (!isSupabaseConfigured) {
+      setError("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY");
       return;
     }
 
-    void withTimeout(supabase.auth.getSession(), 8000, "Session check")
-      .then(({ data }) => {
-        if (data.session) {
-          router.replace(ROUTES.HOME);
-        }
-      })
-      .catch(() => {
-        // Keep page usable even if auth check is slow/unreachable.
-      });
-  }, [router]);
+    if (!isAuthLoading && isAuthenticated) {
+      router.replace(ROUTES.HOME);
+    }
+  }, [isAuthLoading, isAuthenticated, isSupabaseConfigured, router]);
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();

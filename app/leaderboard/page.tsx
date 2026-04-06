@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import NavBar from "@/components/NavBar";
-import { assertSupabaseEnv, supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
+import { useAuthProfile } from "@/lib/hooks/useAuthProfile";
 import { ScoreRow } from "@/lib/types";
-import { getOrCreateUsername } from "@/lib/profile";
 import { ROUTES } from "@/lib/constants";
 import { useT } from "@/lib/i18n/useT";
 
@@ -18,35 +18,32 @@ type LeaderboardPlayerRow = {
 export default function LeaderboardPage() {
   const router = useRouter();
   const t = useT();
-  const [displayName, setDisplayName] = useState<string | null>(null);
+  const { displayName, user, isLoading: isAuthLoading, isSupabaseConfigured } = useAuthProfile();
   const [players, setPlayers] = useState<LeaderboardPlayerRow[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [isLeaderboardLoading, setIsLeaderboardLoading] = useState(true);
 
   useEffect(() => {
-    try {
-      assertSupabaseEnv();
-    } catch (err) {
-      setError((err as Error).message);
-      setIsAuthLoading(false);
+    if (!isSupabaseConfigured) {
+      setError("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY");
       setIsLeaderboardLoading(false);
+      return;
+    }
+
+    if (isAuthLoading) {
+      return;
+    }
+
+    if (!user) {
+      setIsLeaderboardLoading(false);
+      router.replace(ROUTES.LOGIN);
       return;
     }
 
     const load = async () => {
       try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const user = sessionData.session?.user;
-        if (!user) {
-          setIsAuthLoading(false);
-          setIsLeaderboardLoading(false);
-          router.replace(ROUTES.LOGIN);
-          return;
-        }
-        const username = await getOrCreateUsername(user);
-        setDisplayName(username);
-        setIsAuthLoading(false);
+        setError(null);
+        setIsLeaderboardLoading(true);
 
         const { data, error: fetchError } = await supabase
           .from("scores")
@@ -109,13 +106,12 @@ export default function LeaderboardPage() {
       } catch (err) {
         setError((err as Error).message);
       } finally {
-        setIsAuthLoading(false);
         setIsLeaderboardLoading(false);
       }
     };
 
-    load();
-  }, [router]);
+    void load();
+  }, [isAuthLoading, isSupabaseConfigured, router, user]);
 
   if (isAuthLoading) {
     return (
@@ -156,7 +152,7 @@ export default function LeaderboardPage() {
     );
   }
 
-  if (!displayName) {
+  if (!user) {
     return (
       <main className="container">
         <p>{error ?? t("common.redirecting")}</p>

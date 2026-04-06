@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { User } from "@supabase/supabase-js";
 import { getOrCreateUsername } from "@/lib/profile";
 import { assertSupabaseEnv, supabase } from "@/lib/supabase";
 
-type AuthProfileState = {
+export type AuthProfileState = {
   isAuthenticated: boolean;
   displayName: string;
   user: User | null;
@@ -14,6 +14,7 @@ type AuthProfileState = {
 };
 
 const GUEST_NAME = "Guest";
+const AuthProfileContext = createContext<AuthProfileState | null>(null);
 
 function metadataUsername(user: User): string {
   return typeof user.user_metadata?.username === "string" ? user.user_metadata.username.trim() : "";
@@ -31,6 +32,24 @@ function fallbackDisplayName(user: User): string {
   }
 
   return "Player";
+}
+
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+  return await new Promise<T>((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      reject(new Error(`${label} timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+
+    promise
+      .then((value) => {
+        clearTimeout(timeoutId);
+        resolve(value);
+      })
+      .catch((error) => {
+        clearTimeout(timeoutId);
+        reject(error);
+      });
+  });
 }
 
 async function resolveDisplayName(user: User): Promise<string> {
@@ -54,18 +73,22 @@ async function ensureMetadataUsername(user: User, username: string): Promise<voi
   }
 
   try {
-    await supabase.auth.updateUser({
-      data: {
-        ...(user.user_metadata ?? {}),
-        username
-      }
-    });
+    await withTimeout(
+      supabase.auth.updateUser({
+        data: {
+          ...(user.user_metadata ?? {}),
+          username
+        }
+      }),
+      8000,
+      "Metadata sync"
+    );
   } catch {
     // Non-blocking: UI should still proceed even if metadata sync fails.
   }
 }
 
-export function useAuthProfile(): AuthProfileState {
+function useProvideAuthProfile(): AuthProfileState {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [displayName, setDisplayName] = useState(GUEST_NAME);
   const [user, setUser] = useState<User | null>(null);
@@ -108,7 +131,7 @@ export function useAuthProfile(): AuthProfileState {
 
     const syncAuth = async () => {
       try {
-        const { data, error } = await supabase.auth.getSession();
+        const { data, error } = await withTimeout(supabase.auth.getSession(), 8000, "Session check");
         if (error) throw error;
         const sessionUser = data.session?.user;
         if (!sessionUser) {
@@ -151,4 +174,17 @@ export function useAuthProfile(): AuthProfileState {
   }, []);
 
   return { isAuthenticated, displayName, user, isLoading, isSupabaseConfigured };
+}
+
+export function AuthProfileProvider({ children }: { children: React.ReactNode }) {
+  const value = useProvideAuthProfile();
+  return <AuthProfileContext.Provider value={value}>{children}</AuthProfileContext.Provider>;
+}
+
+export function useAuthProfile(): AuthProfileState {
+  const context = useContext(AuthProfileContext);
+  if (!context) {
+    throw new Error("useAuthProfile must be used within AuthProfileProvider");
+  }
+  return context;
 }
