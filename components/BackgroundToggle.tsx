@@ -116,6 +116,9 @@ export default function BackgroundToggle() {
             <Button className={locale === "fr" ? "active" : ""} onClick={() => applyLocale("fr")} aria-pressed={locale === "fr"}>
               FR
             </Button>
+            <Button className={locale === "de" ? "active" : ""} onClick={() => applyLocale("de")} aria-pressed={locale === "de"}>
+              DE
+            </Button>
           </div>
         </div>
       ) : null}

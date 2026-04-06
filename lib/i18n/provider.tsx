@@ -3,9 +3,10 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { STORAGE_KEYS } from "@/lib/constants";
 import { en } from "@/lib/i18n/messages/en";
+import { de } from "@/lib/i18n/messages/de";
 import { fr } from "@/lib/i18n/messages/fr";
 
-export const SUPPORTED_LOCALES = ["en", "fr"] as const;
+export const SUPPORTED_LOCALES = ["en", "fr", "de"] as const;
 export type Locale = (typeof SUPPORTED_LOCALES)[number];
 
 type TranslationVars = Record<string, string | number>;
@@ -18,7 +19,8 @@ type I18nContextValue = {
 
 const messagesByLocale: Record<Locale, Record<string, unknown>> = {
   en,
-  fr
+  fr,
+  de
 };
 
 const I18nContext = createContext<I18nContextValue | null>(null);
@@ -52,6 +54,9 @@ function normalizeLocale(value: string | null | undefined): Locale | null {
   const lower = value.toLowerCase();
   if (lower.startsWith("fr")) {
     return "fr";
+  }
+  if (lower.startsWith("de")) {
+    return "de";
   }
   if (lower.startsWith("en")) {
     return "en";

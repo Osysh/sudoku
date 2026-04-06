@@ -33,7 +33,8 @@ export const en = {
   language: {
     label: "Language",
     english: "English",
-    french: "French"
+    french: "French",
+    german: "German"
   },
   home: {
     resumeGame: "Resume game",
