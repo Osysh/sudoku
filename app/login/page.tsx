@@ -5,25 +5,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { assertSupabaseEnv, supabase } from "@/lib/supabase";
 import { useAuthProfile } from "@/lib/hooks/useAuthProfile";
 import { isUsernameAvailable, sanitizeUsernameInput } from "@/lib/profile";
+import { withTimeout } from "@/lib/withTimeout";
 import Button from "@/components/Button";
 import { QUERY_PARAMS, ROUTES } from "@/lib/constants";
 import { useT } from "@/lib/i18n/useT";
-
-async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
-  return await new Promise<T>((resolve, reject) => {
-    const timeoutId = setTimeout(() => reject(new Error(`${label} timed out.`)), timeoutMs);
-
-    promise
-      .then((value) => {
-        clearTimeout(timeoutId);
-        resolve(value);
-      })
-      .catch((error) => {
-        clearTimeout(timeoutId);
-        reject(error);
-      });
-  });
-}
 
 function LoginPageContent() {
   const router = useRouter();

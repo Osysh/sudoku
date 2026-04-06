@@ -7,6 +7,7 @@ import BackgroundToggle from "@/components/BackgroundToggle";
 import { supabase } from "@/lib/supabase";
 import { useAuthProfile } from "@/lib/hooks/useAuthProfile";
 import { calculatePoints, createSudoku, formatSeconds, validateProgress } from "@/lib/sudoku";
+import { withTimeout } from "@/lib/withTimeout";
 import { Difficulty, SudokuGameState } from "@/lib/types";
 import { DIFFICULTY_VALUES, QUERY_PARAMS, ROUTES } from "@/lib/constants";
 import { useT } from "@/lib/i18n/useT";
@@ -20,24 +21,6 @@ import {
 } from "@/lib/dailyChallenge";
 
 type GameOutcome = "playing" | "victory" | "defeat";
-
-async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
-  return await new Promise<T>((resolve, reject) => {
-    const timeoutId = setTimeout(() => {
-      reject(new Error(`${label} timed out after ${timeoutMs}ms`));
-    }, timeoutMs);
-
-    promise
-      .then((value) => {
-        clearTimeout(timeoutId);
-        resolve(value);
-      })
-      .catch((error) => {
-        clearTimeout(timeoutId);
-        reject(error);
-      });
-  });
-}
 
 export default function SudokuGame() {
   const router = useRouter();

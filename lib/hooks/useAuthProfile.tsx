@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { User } from "@supabase/supabase-js";
 import { getOrCreateUsername } from "@/lib/profile";
 import { assertSupabaseEnv, supabase } from "@/lib/supabase";
+import { withTimeout } from "@/lib/withTimeout";
 
 export type AuthProfileState = {
   isAuthenticated: boolean;
@@ -32,24 +33,6 @@ function fallbackDisplayName(user: User): string {
   }
 
   return "Player";
-}
-
-async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
-  return await new Promise<T>((resolve, reject) => {
-    const timeoutId = setTimeout(() => {
-      reject(new Error(`${label} timed out after ${timeoutMs}ms`));
-    }, timeoutMs);
-
-    promise
-      .then((value) => {
-        clearTimeout(timeoutId);
-        resolve(value);
-      })
-      .catch((error) => {
-        clearTimeout(timeoutId);
-        reject(error);
-      });
-  });
 }
 
 async function resolveDisplayName(user: User): Promise<string> {
