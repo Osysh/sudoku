@@ -22,7 +22,11 @@ export default function HomePage() {
   const daily = useDailyChallengeStatus(isAuthLoading ? undefined : user);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut({ scope: "local" });
+    } finally {
+      router.replace(ROUTES.LOGIN);
+    }
   };
 
   const handleOpenDaily = (date: string) => {

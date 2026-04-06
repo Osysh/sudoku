@@ -21,6 +21,24 @@ import {
 
 type GameOutcome = "playing" | "victory" | "defeat";
 
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+  return await new Promise<T>((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      reject(new Error(`${label} timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+
+    promise
+      .then((value) => {
+        clearTimeout(timeoutId);
+        resolve(value);
+      })
+      .catch((error) => {
+        clearTimeout(timeoutId);
+        reject(error);
+      });
+  });
+}
+
 export default function SudokuGame() {
   const router = useRouter();
   const params = useSearchParams();
@@ -225,11 +243,11 @@ export default function SudokuGame() {
         }
 
         setIsAuthenticated(true);
-        try {
-          await getOrCreateUsername(user);
-        } catch {
-          // profile creation failed, auth still valid
-        }
+        setTimeout(() => {
+          void getOrCreateUsername(user).catch(() => {
+            // profile creation failed, auth still valid
+          });
+        }, 0);
       } catch {
         if (mounted) {
           setIsAuthenticated(false);
@@ -239,7 +257,7 @@ export default function SudokuGame() {
 
     void syncAuth();
 
-    const { data: sub } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!mounted) {
         return;
       }
@@ -251,11 +269,12 @@ export default function SudokuGame() {
       }
 
       setIsAuthenticated(true);
-      try {
-        await getOrCreateUsername(user);
-      } catch {
-        // ignore
-      }
+      // Keep auth callback synchronous to avoid auth lock contention.
+      setTimeout(() => {
+        void getOrCreateUsername(user).catch(() => {
+          // ignore
+        });
+      }, 0);
     });
 
     return () => {
@@ -373,9 +392,16 @@ export default function SudokuGame() {
     }
 
     setIsSubmittingScore(true);
+    setStatus("");
+
+    let saved = false;
 
     try {
-      const { data, error: sessionError } = await supabase.auth.getSession();
+      const { data, error: sessionError } = await withTimeout(
+        supabase.auth.getSession(),
+        8000,
+        "Auth session retrieval"
+      );
       if (sessionError) {
         throw sessionError;
       }
@@ -383,19 +409,22 @@ export default function SudokuGame() {
       const user = data.session?.user;
       if (!user) {
         setIsAuthenticated(false);
-        setIsSubmittingScore(false);
         router.push(ROUTES.LOGIN);
         return;
       }
 
-      const { error } = await supabase.from("scores").insert({
-        user_id: user.id,
-        difficulty: game.difficulty,
-        completion_seconds: game.elapsedSeconds,
-        points: finalScore,
-        is_daily_challenge: isDailyMode,
-        challenge_date: isDailyMode ? dailyDate : null
-      });
+      const { error } = await withTimeout(
+        supabase.from("scores").insert({
+          user_id: user.id,
+          difficulty: game.difficulty,
+          completion_seconds: game.elapsedSeconds,
+          points: finalScore,
+          is_daily_challenge: isDailyMode,
+          challenge_date: isDailyMode ? dailyDate : null
+        }),
+        10000,
+        "Score save"
+      );
 
       if (error) {
         throw error;
@@ -403,10 +432,15 @@ export default function SudokuGame() {
 
       localStorage.removeItem(gameStorageKey);
       setSavedScore(true);
+      saved = true;
       router.push(ROUTES.LEADERBOARD);
-    } catch {
+    } catch (error) {
+      console.error("Score save failed", error);
       setStatus(t("game.scoreSaveError"));
-      setIsSubmittingScore(false);
+    } finally {
+      if (!saved) {
+        setIsSubmittingScore(false);
+      }
     }
   }, [dailyDate, finalScore, game, gameStorageKey, isDailyMode, isSubmittingScore, outcome, router, savedScore, supabaseConfigured, t]);
 

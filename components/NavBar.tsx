@@ -19,8 +19,11 @@ export default function NavBar({ displayName, isAuthenticated = true, onConnect 
   const t = useT();
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.replace(ROUTES.LOGIN);
+    try {
+      await supabase.auth.signOut({ scope: "local" });
+    } finally {
+      router.replace(ROUTES.LOGIN);
+    }
   };
 
   return (

@@ -8,6 +8,22 @@ import Button from "@/components/Button";
 import { QUERY_PARAMS, ROUTES } from "@/lib/constants";
 import { useT } from "@/lib/i18n/useT";
 
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+  return await new Promise<T>((resolve, reject) => {
+    const timeoutId = setTimeout(() => reject(new Error(`${label} timed out.`)), timeoutMs);
+
+    promise
+      .then((value) => {
+        clearTimeout(timeoutId);
+        resolve(value);
+      })
+      .catch((error) => {
+        clearTimeout(timeoutId);
+        reject(error);
+      });
+  });
+}
+
 function LoginPageContent() {
   const router = useRouter();
   const t = useT();
@@ -40,11 +56,15 @@ function LoginPageContent() {
       return;
     }
 
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) {
-        router.replace(ROUTES.HOME);
-      }
-    });
+    void withTimeout(supabase.auth.getSession(), 8000, "Session check")
+      .then(({ data }) => {
+        if (data.session) {
+          router.replace(ROUTES.HOME);
+        }
+      })
+      .catch(() => {
+        // Keep page usable even if auth check is slow/unreachable.
+      });
   }, [router]);
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -63,9 +83,13 @@ function LoginPageContent() {
 
         let emailForLogin = trimmed;
         if (!trimmed.includes("@")) {
-          const { data: mapped, error: mapError } = await supabase.functions.invoke("signin-with-username", {
-            body: { username: trimmed }
-          });
+          const { data: mapped, error: mapError } = await withTimeout(
+            supabase.functions.invoke("signin-with-username", {
+              body: { username: trimmed }
+            }),
+            10000,
+            "Username lookup"
+          );
           if (mapError) {
             const status =
               (mapError as { context?: { status?: number }; status?: number }).context?.status ??
@@ -86,10 +110,14 @@ function LoginPageContent() {
           emailForLogin = String(mapped.email);
         }
 
-        const { error: loginError } = await supabase.auth.signInWithPassword({
-          email: emailForLogin,
-          password
-        });
+        const { error: loginError } = await withTimeout(
+          supabase.auth.signInWithPassword({
+            email: emailForLogin,
+            password
+          }),
+          10000,
+          "Sign in"
+        );
         if (loginError) throw loginError;
         router.replace(ROUTES.HOME);
         return;

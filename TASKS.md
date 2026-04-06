@@ -25,3 +25,4 @@
 - Add offline mode with sync on reconnect.
 - Add candidate notes in cell corners.
 - Add snapshots/checkpoints to roll back to previous game states.
+- Numbers should be bigger

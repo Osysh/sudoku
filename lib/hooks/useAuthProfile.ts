@@ -15,11 +15,53 @@ type AuthProfileState = {
 
 const GUEST_NAME = "Guest";
 
+function metadataUsername(user: User): string {
+  return typeof user.user_metadata?.username === "string" ? user.user_metadata.username.trim() : "";
+}
+
+function fallbackDisplayName(user: User): string {
+  const metadataName = metadataUsername(user);
+  if (metadataName) {
+    return metadataName;
+  }
+
+  const email = user.email?.trim();
+  if (email) {
+    return email;
+  }
+
+  return "Player";
+}
+
 async function resolveDisplayName(user: User): Promise<string> {
+  const timeoutMs = 6000;
+
   try {
-    return await getOrCreateUsername(user);
+    return await Promise.race<string>([
+      getOrCreateUsername(user),
+      new Promise<string>((resolve) => {
+        setTimeout(() => resolve(fallbackDisplayName(user)), timeoutMs);
+      })
+    ]);
   } catch {
-    return user.email ?? "Player";
+    return fallbackDisplayName(user);
+  }
+}
+
+async function ensureMetadataUsername(user: User, username: string): Promise<void> {
+  if (metadataUsername(user) || !username.trim()) {
+    return;
+  }
+
+  try {
+    await supabase.auth.updateUser({
+      data: {
+        ...(user.user_metadata ?? {}),
+        username
+      }
+    });
+  } catch {
+    // Non-blocking: UI should still proceed even if metadata sync fails.
   }
 }
 
@@ -56,10 +98,12 @@ export function useAuthProfile(): AuthProfileState {
       if (!mounted) return;
       setIsAuthenticated(true);
       setUser(nextUser);
+      setDisplayName(fallbackDisplayName(nextUser));
       const name = await resolveDisplayName(nextUser);
       if (mounted) {
         setDisplayName(name);
       }
+      await ensureMetadataUsername(nextUser, name);
     };
 
     const syncAuth = async () => {
@@ -70,7 +114,7 @@ export function useAuthProfile(): AuthProfileState {
         if (!sessionUser) {
           applySignedOut();
         } else {
-          await applySignedIn(sessionUser);
+          void applySignedIn(sessionUser);
         }
       } catch {
         applySignedOut();
@@ -83,13 +127,21 @@ export function useAuthProfile(): AuthProfileState {
 
     void syncAuth();
 
-    const { data: sub } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (mounted) {
+        setIsLoading(false);
+      }
+
       const nextUser = session?.user;
       if (!nextUser) {
         applySignedOut();
         return;
       }
-      await applySignedIn(nextUser);
+
+      // Keep auth callback synchronous to avoid auth lock contention.
+      setTimeout(() => {
+        void applySignedIn(nextUser);
+      }, 0);
     });
 
     return () => {
