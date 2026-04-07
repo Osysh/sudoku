@@ -15,7 +15,9 @@ export const de = {
   difficulty: {
     easy: "Einfach",
     medium: "Mittel",
-    hard: "Schwer"
+    difficult: "Schwierig",
+    hard: "Sehr schwer",
+    extrem: "Extrem"
   },
   theme: {
     settings: "Einstellungen",

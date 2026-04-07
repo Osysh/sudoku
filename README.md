@@ -5,7 +5,7 @@ Sudoky is a local-first Sudoku app built with Next.js + React and Supabase auth/
 ## Features
 
 - Email/password authentication with required unique username at sign-up
-- Home page with 3 Sudoku difficulty levels (easy, medium, hard) in 9x9 format
+- Home page with 5 Sudoku difficulty levels (easy, medium, difficult, hard, extrem) in 9x9 format
 - In-game timer
 - Pause/resume controls
 - "Leave game (pause)" behavior with browser-local saved progress
@@ -16,14 +16,15 @@ Sudoky is a local-first Sudoku app built with Next.js + React and Supabase auth/
 
 Each solved game gives points based on:
 
-1. Difficulty (`easy`, `medium`, `hard`)
+1. Difficulty (`easy`, `medium`, `difficult`, `hard`, `extrem`)
 2. Completion time (seconds)
 
 Current formula (in code):
 
-- Base points: easy `600`, medium `1000`, hard `1500`
-- Time penalty: `2` points per second
-- Minimum score: `100`
+- Easy: base `400`, max time bonus `300` (bonus window `3h`)
+- Medium: base `550`, max time bonus `400` (bonus window `3h15m`)
+- Hard: base `1300`, max time bonus `1000` (bonus window `4h30m`)
+- Bonus scales linearly with remaining time in the difficulty window
 
 ## Stack
 
@@ -67,7 +68,7 @@ Open `http://localhost:3000`.
 
 - `/login`: authentication page
 - `/`: home page (difficulty selection + resume saved game)
-- `/game?difficulty=easy|medium|hard`: Sudoku game
+- `/game?difficulty=easy|medium|difficult|hard|extrem`: Sudoku game
 - `/leaderboard`: scores ranking
 
 ## Notes

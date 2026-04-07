@@ -61,8 +61,10 @@ export function validateProgress(board: number[][], puzzle: number[][]): boolean
 export function calculatePoints(difficulty: Difficulty, completionSeconds: number): number {
   const config = {
     easy: { base: 400, bonusMax: 300, limitSeconds: 3 * 60 * 60 },
-    medium: { base: 700, bonusMax: 500, limitSeconds: 3 * 60 * 60 + 30 * 60 },
-    hard: { base: 1100, bonusMax: 800, limitSeconds: 4 * 60 * 60 }
+    medium: { base: 550, bonusMax: 400, limitSeconds: 3 * 60 * 60 + 15 * 60 },
+    difficult: { base: 900, bonusMax: 700, limitSeconds: 4 * 60 * 60 },
+    hard: { base: 1300, bonusMax: 1000, limitSeconds: 4 * 60 * 60 + 30 * 60 },
+    extrem: { base: 1700, bonusMax: 1300, limitSeconds: 5 * 60 * 60 }
   }[difficulty];
 
   const elapsed = Math.max(0, completionSeconds);

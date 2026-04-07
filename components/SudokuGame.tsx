@@ -34,6 +34,7 @@ export default function SudokuGame() {
   const dailyDate = isIsoDateKey(requestedDailyDate) ? requestedDailyDate : localDate;
   const gameStorageKey = isDailyMode ? getDailyGameStorageKey(dailyDate) : STANDARD_GAME_STORAGE_KEY;
   const { isAuthenticated, user, isSupabaseConfigured: supabaseConfigured, isLoading: isAuthLoading } = useAuthProfile();
+  const userId = user?.id ?? null;
 
   const [game, setGame] = useState<SudokuGameState | null>(null);
   const [selected, setSelected] = useState<{ row: number; col: number } | null>(null);
@@ -123,7 +124,7 @@ export default function SudokuGame() {
         return;
       }
 
-      if (!user) {
+      if (!userId) {
         router.replace(`${ROUTES.LOGIN}?${QUERY_PARAMS.MODE}=login`);
         return;
       }
@@ -188,7 +189,7 @@ export default function SudokuGame() {
     return () => {
       cancelled = true;
     };
-  }, [dailyDate, difficulty, forceNew, gameStorageKey, isAuthLoading, isDailyMode, router, supabaseConfigured, t, user]);
+  }, [dailyDate, difficulty, forceNew, gameStorageKey, isAuthLoading, isDailyMode, router, supabaseConfigured, t, userId]);
 
   useEffect(() => {
     if (isPaused || savedScore || victoryLocked) {

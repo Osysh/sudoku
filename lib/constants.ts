@@ -20,13 +20,15 @@ export const STORAGE_KEYS = {
   LOCALE: "sudoky-locale"
 } as const;
 
-export const DIFFICULTY_VALUES = ["easy", "medium", "hard"] as const;
+export const DIFFICULTY_VALUES = ["easy", "medium", "difficult", "hard", "extrem"] as const;
 export type AppDifficulty = (typeof DIFFICULTY_VALUES)[number];
 
 export const DIFFICULTY_LABELS: Record<AppDifficulty, string> = {
   easy: "Easy",
   medium: "Medium",
-  hard: "Hard"
+  difficult: "Difficult",
+  hard: "Hard",
+  extrem: "Extrem"
 };
 
 export const SUDOKU = {
@@ -37,9 +39,11 @@ export const SUDOKU = {
 } as const;
 
 export const SUDOKU_DIFFICULTY_CLUES: Record<AppDifficulty, number> = {
-  easy: 40,
-  medium: 32,
-  hard: 26
+  easy: 42,
+  medium: 38,
+  difficult: 32,
+  hard: 26,
+  extrem: 22
 };
 
 export const DAILY_CHALLENGE = {
