@@ -112,10 +112,17 @@ function LoginPageContent() {
         throw new Error(t("login.errors.usernameTaken"));
       }
 
+      const normalizedBasePath = (process.env.NEXT_PUBLIC_BASE_PATH || "").replace(/\/+$/, "");
+      const emailRedirectTo = new URL(
+        `${normalizedBasePath}${ROUTES.LOGIN}`,
+        window.location.origin
+      ).toString();
+
       const { data, error: signupError } = await supabase.auth.signUp({
         email,
         password,
         options: {
+          emailRedirectTo,
           data: {
             username: normalizedUsername
           }
